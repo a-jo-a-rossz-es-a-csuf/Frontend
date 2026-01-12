@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bejelentkezés - AutoParts Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50">
+    <!-- HEADER -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <a href="index.html" class="text-2xl font-bold text-red-600">AutoParts Pro</a>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="bejelentkezes.html" class="text-red-600 font-medium hidden sm:block">Bejelentkezés</a>
+                    <button class="relative p-2 text-gray-600 hover:text-gray-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                        <span id="cart-count" class="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav class="bg-gray-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-center gap-8 h-14">
+                <a href="index.html" class="text-gray-700 hover:text-red-600 font-medium">Összes</a>
+                <a href="alvazszamkereso.html" class="text-gray-700 hover:text-red-600 font-medium">Alvázszám kereső</a>
+                <a href="folyadékok.html" class="text-gray-700 hover:text-red-600 font-medium">Olajok/folyadékok</a>
+                <a href="admin.html" class="text-gray-700 hover:text-red-600 font-medium">Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- LOGIN SECTION -->
+    <main class="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 py-12 px-4">
+        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                    <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">Üdvözöljük!</h2>
+                <p class="text-gray-600">Jelentkezzen be fiókjába a folytatáshoz</p>
+            </div>
+
+            <!-- Error/Success Messages -->
+            <div id="loginMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+            <form id="loginForm">
+                <div class="mb-4">
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email cím</label>
+                    <input type="email" id="email" name="email" placeholder="pelda@email.hu" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent">
+                </div>
+
+                <div class="mb-4">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Jelszó</label>
+                    <input type="password" id="password" name="password" placeholder="Jelszó" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-transparent">
+                </div>
+
+                <div class="flex items-center justify-between mb-6">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="remember" class="rounded text-red-600">
+                        <span class="text-sm text-gray-600">Emlékezz rám</span>
+                    </label>
+                    <a href="#" class="text-sm text-red-600 hover:underline">Elfelejtett jelszó?</a>
+                </div>
+
+                <button type="submit" id="loginBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-bold transition-colors">
+                    Bejelentkezés
+                </button>
+            </form>
+
+            <div class="my-6 flex items-center">
+                <div class="flex-1 border-t border-gray-300"></div>
+                <span class="px-4 text-sm text-gray-500">vagy</span>
+                <div class="flex-1 border-t border-gray-300"></div>
+            </div>
+
+            <button class="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors">
+                <svg class="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Bejelentkezés Google-lel
+            </button>
+
+            <div class="mt-6 text-center">
+                <span class="text-gray-600">Nincs még fiókja?</span>
+                <a href="register.html" class="text-red-600 font-medium hover:underline ml-1">Regisztráció</a>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-400 text-sm">&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_URL = 'http://127.0.0.1/autoparts/api';
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('authToken');
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            
+            if (token && user) {
+                showMessage('Már be van jelentkezve! Átirányítás...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 1500);
+            }
+            
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        });
+        
+        function showMessage(msg, type) {
+            const msgDiv = document.getElementById('loginMessage');
+            msgDiv.textContent = msg;
+            msgDiv.className = `mb-4 p-3 rounded-lg text-sm ${type === 'success' ? 'bg-green-100 text-green-700 border border-green-400' : 'bg-red-100 text-red-700 border border-red-400'}`;
+            msgDiv.classList.remove('hidden');
+        }
+        
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Bejelentkezés...';
+            
+            try {
+                const response = await fetch(`${API_URL}/auth.php?action=login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, jelszo: password })
+                });
+                
+                const text = await response.text();
+                
+                // Try to parse JSON
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    console.error('Server response (not JSON):', text);
+                    showMessage('Szerver hiba! Ellenőrizd a PHP fájlokat. Részletek a konzolban.', 'error');
+                    btn.disabled = false;
+                    btn.textContent = 'Bejelentkezés';
+                    return;
+                }
+                
+                if (data.success) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    
+                    showMessage('Sikeres bejelentkezés! Átirányítás...', 'success');
+                    
+                    setTimeout(() => {
+                        if (data.user.szerepkor === 'admin') {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'index.html';
+                        }
+                    }, 1500);
+                } else {
+                    showMessage(data.error || 'Hibás email cím vagy jelszó', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showMessage('Kapcsolódási hiba! Ellenőrizd: 1) XAMPP fut-e, 2) api mappa helye: htdocs/autoparts/api, 3) adatbázis importálva van-e', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Bejelentkezés';
+            }
+        }
+    </script>
+</body>
+</html>
