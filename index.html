@@ -5,554 +5,238 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoParts Pro - Autóalkatrész Webshop</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-        .product-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .product-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-        }
-        .cart-item {
-            animation: slideIn 0.3s ease;
-        }
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .btn-primary {
-            background-color: #dc2626;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.3s ease;
-        }
-        .btn-primary:hover {
-            background-color: #b91c1c;
-        }
-        .btn-secondary {
-            background-color: #f3f4f6;
-            color: #1f2937;
-            padding: 10px 20px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        .btn-secondary:hover {
-            background-color: #e5e7eb;
-        }
-        .price {
-            color: #dc2626;
-            font-weight: 700;
-            font-size: 1.25rem;
-        }
-        .star {
-            color: #fbbf24;
-        }
-    </style>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="bg-white">
+<body class="bg-gray-50">
     <!-- HEADER -->
-    <header class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logo -->
-                <div class="flex items-center gap-2">
-                    <div class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold text-xl">⚙</span>
-                    </div>
-                    <span class="text-2xl font-bold text-gray-900">AutoParts Pro</span>
-                </div>
-
-                <!-- Search Bar (Desktop) -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <a href="index.html" class="text-2xl font-bold text-red-600">AutoParts Pro</a>
+                
                 <div class="hidden md:flex flex-1 max-w-md mx-8">
-                    <input type="text" placeholder="Keresés alkatrészek között..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                    <input type="text" id="header-search" placeholder="Keresés alkatrészek között..." 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
                 </div>
 
-                <!-- Right Actions -->
                 <div class="flex items-center gap-4">
-                    <button class="text-gray-600 hover:text-gray-900 font-medium hidden sm:block">Bejelentkezés</button>
-                    <button onclick="toggleCart()" class="relative p-2 text-gray-600 hover:text-gray-900">
+                    <span id="userInfo" class="text-gray-600 text-sm hidden"></span>
+                    <!-- Csak ha nincs bejelentkezve -->
+                    <a href="bejelentkezes.html" id="loginLink" class="text-gray-600 hover:text-gray-900 font-medium">Bejelentkezés</a>
+                    <!-- Csak ha be van jelentkezve -->
+                    <button onclick="logout()" id="logoutBtn" class="text-red-600 hover:text-red-700 font-medium hidden">Kijelentkezés</button>
+                    <a href="kosar.html" class="relative p-2 text-gray-600 hover:text-gray-900">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                         </svg>
                         <span id="cart-count" class="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
-                    </button>
+                    </a>
                 </div>
-            </div>
-
-            <!-- Mobile Search -->
-            <div class="md:hidden pb-4">
-                <input type="text" placeholder="Keresés..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
             </div>
         </div>
     </header>
 
     <!-- NAVIGATION -->
-    <nav class="bg-gray-50 border-b border-gray-200">
+    <nav class="bg-gray-100 border-b border-gray-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex gap-8 overflow-x-auto py-4">
-                <button class="text-gray-900 font-medium whitespace-nowrap pb-4 border-b-2 border-red-600">Összes</button>
-                <button class="text-gray-600 hover:text-gray-900 whitespace-nowrap pb-4 font-medium">Motor alkatrészek</button>
-                <button class="text-gray-600 hover:text-gray-900 whitespace-nowrap pb-4 font-medium">Fékek</button>
-                <button class="text-gray-600 hover:text-gray-900 whitespace-nowrap pb-4 font-medium">Szűrők</button>
-                <button class="text-gray-600 hover:text-gray-900 whitespace-nowrap pb-4 font-medium">Akkumulátorok</button>
-                <button class="text-gray-600 hover:text-gray-900 whitespace-nowrap pb-4 font-medium">Fényszórók</button>
+            <div class="flex items-center justify-center gap-8 h-12">
+                <a href="index.html" class="text-red-600 font-medium">Főoldal</a>
+                <a href="szemely.html" class="text-gray-600 hover:text-red-600 font-medium">Személygépkocsi</a>
+                <a href="teher.html" class="text-gray-600 hover:text-red-600 font-medium">Teherautó</a>
+                <a href="motor.html" class="text-gray-600 hover:text-red-600 font-medium">Motorkerékpár</a>
+                <a href="alvazszamkereso.html" class="text-gray-600 hover:text-red-600 font-medium">Alvázszám kereső</a>
+                <a href="folyadékok.html" class="text-gray-600 hover:text-red-600 font-medium">Olajok/folyadékok</a>
+                <a href="cikkszam.html" class="text-gray-600 hover:text-red-600 font-medium">Cikkszám</a>
+                <a href="admin.html" id="adminLink" class="text-gray-600 hover:text-red-600 font-medium hidden">Admin</a>
             </div>
         </div>
     </nav>
 
     <!-- HERO SECTION -->
-    <section class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-16 md:py-24">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-            <div>
-                <h1 class="text-4xl md:text-5xl font-bold mb-4">Autóalkatrészek a Legjobb Árakon</h1>
-                <p class="text-gray-300 text-lg mb-8">Megbízható minőségű alkatrészek minden járműhöz. Gyors szállítás és ügyfélszolgálat.</p>
-                <div class="flex gap-4">
-                    <button class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg font-bold transition">Kezdj vásárlást</button>
-                    <button class="bg-gray-700 hover:bg-gray-600 text-white px-8 py-3 rounded-lg font-bold transition">További információ</button>
-                </div>
-            </div>
-            <div class="hidden md:block">
-                <svg class="w-full h-auto" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="200" cy="150" r="120" fill="#374151" opacity="0.5"></circle>
-                    <rect x="100" y="120" width="200" height="80" fill="#4b5563" rx="10"></rect>
-                    <circle cx="140" cy="180" r="20" fill="#60a5fa"></circle>
-                    <circle cx="260" cy="180" r="20" fill="#60a5fa"></circle>
-                    <rect x="120" y="140" width="160" height="20" fill="#1f2937" rx="4"></rect>
-                </svg>
+    <section class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-4">Autóalkatrészek a Legjobb Árakon</h1>
+            <p class="text-gray-300 text-lg mb-8">BMW, Audi, Mercedes alkatrészek - Teherautók - Motorkerékpárok</p>
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="szemely.html" class="bg-red-600 hover:bg-red-700 px-8 py-3 rounded-lg font-bold transition">Személyautó alkatrészek</a>
+                <a href="teher.html" class="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 rounded-lg font-bold transition">Teherautó alkatrészek</a>
+                <a href="motor.html" class="border-2 border-white hover:bg-white hover:text-gray-900 px-8 py-3 rounded-lg font-bold transition">Motorkerékpár</a>
             </div>
         </div>
     </section>
 
-    <!-- MAIN CONTENT -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <!-- FILTERS SECTION -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-            <!-- Sidebar Filters -->
-            <aside class="md:col-span-1">
-                <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                    <h2 class="text-lg font-bold text-gray-900 mb-6">Szűrők</h2>
-                    
-                    <!-- Price Filter -->
-                    <div class="mb-6">
-                        <h3 class="font-bold text-gray-900 mb-3">Ár</h3>
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked class="w-4 h-4">
-                                <span class="text-gray-700">0 - 5.000 Ft</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="w-4 h-4">
-                                <span class="text-gray-700">5.000 - 15.000 Ft</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="w-4 h-4">
-                                <span class="text-gray-700">15.000 - 50.000 Ft</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="w-4 h-4">
-                                <span class="text-gray-700">50.000 Ft+</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Availability Filter -->
-                    <div class="mb-6">
-                        <h3 class="font-bold text-gray-900 mb-3">Elérhetőség</h3>
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked class="w-4 h-4">
-                                <span class="text-gray-700">Raktáron</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="w-4 h-4">
-                                <span class="text-gray-700">Rendezhető</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Rating Filter -->
-                    <div>
-                        <h3 class="font-bold text-gray-900 mb-3">Értékelés</h3>
-                        <div class="space-y-2">
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="w-4 h-4">
-                                <span class="text-gray-700 flex items-center gap-1">
-                                    <span class="star">★★★★★</span> 5 csillag
-                                </span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" checked class="w-4 h-4">
-                                <span class="text-gray-700 flex items-center gap-1">
-                                    <span class="star">★★★★</span> 4+ csillag
-                                </span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input type="checkbox" class="w-4 h-4">
-                                <span class="text-gray-700 flex items-center gap-1">
-                                    <span class="star">★★★</span> 3+ csillag
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </aside>
-
-            <!-- Products Grid -->
-            <section class="md:col-span-3">
-                <!-- Sort Options -->
-                <div class="flex justify-between items-center mb-6">
-                    <p class="text-gray-600"><strong>48</strong> termék</p>
-                    <select class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-600">
-                        <option>Releváncia szerint</option>
-                        <option>Ár: alacsony-magas</option>
-                        <option>Ár: magas-alacsony</option>
-                        <option>Legújabb</option>
-                        <option>Legmagasabb értékelés</option>
-                    </select>
-                </div>
-
-                <!-- Products Grid -->
-                <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <!-- Product Card 1 -->
-                    <div class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-100 h-48 flex items-center justify-center">
-                            <svg class="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-bold text-gray-900 mb-2">Olajcsere szett</h3>
-                            <p class="text-gray-600 text-sm mb-3">Premium minőségű motor olaj szűrővel</p>
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="star text-sm">★★★★★</span>
-                                <span class="text-gray-600 text-sm">(124 értékelés)</span>
-                            </div>
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="price">3.990 Ft</span>
-                                <span class="text-gray-500 line-through text-sm">5.990 Ft</span>
-                            </div>
-                            <button onclick="addToCart('Olajcsere szett', 3990)" class="btn-primary w-full">Kosárba</button>
-                        </div>
-                    </div>
-
-                    <!-- Product Card 2 -->
-                    <div class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-100 h-48 flex items-center justify-center">
-                            <svg class="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-bold text-gray-900 mb-2">Fékbetét szett</h3>
-                            <p class="text-gray-600 text-sm mb-3">Fém-kerámia fékbetétek</p>
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="star text-sm">★★★★★</span>
-                                <span class="text-gray-600 text-sm">(87 értékelés)</span>
-                            </div>
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="price">8.490 Ft</span>
-                                <span class="text-gray-500 line-through text-sm">10.990 Ft</span>
-                            </div>
-                            <button onclick="addToCart('Fékbetét szett', 8490)" class="btn-primary w-full">Kosárba</button>
-                        </div>
-                    </div>
-
-                    <!-- Product Card 3 -->
-                    <div class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-100 h-48 flex items-center justify-center">
-                            <svg class="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-bold text-gray-900 mb-2">Levegőszűrő</h3>
-                            <p class="text-gray-600 text-sm mb-3">Magas teljesítményű levegőszűrő</p>
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="star text-sm">★★★★</span>
-                                <span class="text-gray-600 text-sm">(56 értékelés)</span>
-                            </div>
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="price">2.490 Ft</span>
-                                <span class="text-gray-500 line-through text-sm">3.490 Ft</span>
-                            </div>
-                            <button onclick="addToCart('Levegőszűrő', 2490)" class="btn-primary w-full">Kosárba</button>
-                        </div>
-                    </div>
-
-                    <!-- Product Card 4 -->
-                    <div class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-100 h-48 flex items-center justify-center">
-                            <svg class="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-bold text-gray-900 mb-2">Autóakkumulátor</h3>
-                            <p class="text-gray-600 text-sm mb-3">12V 60Ah nagy kapacitású akkumulátor</p>
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="star text-sm">★★★★★</span>
-                                <span class="text-gray-600 text-sm">(203 értékelés)</span>
-                            </div>
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="price">28.990 Ft</span>
-                                <span class="text-gray-500 line-through text-sm">34.990 Ft</span>
-                            </div>
-                            <button onclick="addToCart('Autóakkumulátor', 28990)" class="btn-primary w-full">Kosárba</button>
-                        </div>
-                    </div>
-
-                    <!-- Product Card 5 -->
-                    <div class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-100 h-48 flex items-center justify-center">
-                            <svg class="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-bold text-gray-900 mb-2">Fényszóró készlet</h3>
-                            <p class="text-gray-600 text-sm mb-3">LED H7 fényszóró izzók párban</p>
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="star text-sm">★★★★</span>
-                                <span class="text-gray-600 text-sm">(95 értékelés)</span>
-                            </div>
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="price">5.990 Ft</span>
-                                <span class="text-gray-500 line-through text-sm">7.990 Ft</span>
-                            </div>
-                            <button onclick="addToCart('Fényszóró készlet', 5990)" class="btn-primary w-full">Kosárba</button>
-                        </div>
-                    </div>
-
-                    <!-- Product Card 6 -->
-                    <div class="product-card bg-white border border-gray-200 rounded-lg overflow-hidden">
-                        <div class="bg-gray-100 h-48 flex items-center justify-center">
-                            <svg class="w-24 h-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                        </div>
-                        <div class="p-4">
-                            <h3 class="font-bold text-gray-900 mb-2">Szíjcsere szett</h3>
-                            <p class="text-gray-600 text-sm mb-3">Biztonsági öv szíjak és csatornák</p>
-                            <div class="flex items-center gap-2 mb-3">
-                                <span class="star text-sm">★★★★★</span>
-                                <span class="text-gray-600 text-sm">(67 értékelés)</span>
-                            </div>
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="price">4.490 Ft</span>
-                                <span class="text-gray-500 line-through text-sm">5.990 Ft</span>
-                            </div>
-                            <button onclick="addToCart('Szíjcsere szett', 4490)" class="btn-primary w-full">Kosárba</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pagination -->
-                <div class="flex justify-center gap-2 mt-12">
-                    <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Előző</button>
-                    <button class="px-4 py-2 bg-red-600 text-white rounded-lg">1</button>
-                    <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">2</button>
-                    <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">3</button>
-                    <button class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Következő</button>
-                </div>
-            </section>
+    <!-- BRANDS SECTION -->
+    <section class="py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-center mb-8">Személyautó márkáink</h2>
+            <div class="grid grid-cols-3 gap-6">
+                <a href="szemely.html?marka=1" class="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                    <div class="text-4xl font-bold text-blue-600 mb-2">BMW</div>
+                    <p class="text-gray-600">1-es, 3-as, 5-os, X3, X5</p>
+                </a>
+                <a href="szemely.html?marka=2" class="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                    <div class="text-4xl font-bold text-gray-800 mb-2">Audi</div>
+                    <p class="text-gray-600">A3, A4, A6, Q5, Q7</p>
+                </a>
+                <a href="szemely.html?marka=3" class="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                    <div class="text-4xl font-bold text-gray-700 mb-2">Mercedes</div>
+                    <p class="text-gray-600">A, C, E, GLA, GLC, GLE</p>
+                </a>
+            </div>
         </div>
-    </main>
+    </section>
 
-    <!-- CART MODAL -->
-    <div id="cart-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-40 flex items-end md:items-center md:justify-end">
-        <div class="bg-white w-full md:w-96 max-h-96 md:max-h-[600px] overflow-y-auto rounded-t-2xl md:rounded-lg md:m-4">
-            <div class="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center">
-                <h2 class="text-xl font-bold text-gray-900">Vásárlási kosár</h2>
-                <button onclick="toggleCart()" class="text-gray-600 hover:text-gray-900">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+    <!-- CATEGORIES -->
+    <section class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-center mb-8">Kategóriák</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <a href="szemely.html" class="bg-gray-50 p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
-                </button>
-            </div>
-            
-            <div id="cart-items" class="p-4 space-y-3">
-                <!-- Cart items will be inserted here -->
-            </div>
-
-            <div class="border-t border-gray-200 p-4 space-y-3">
-                <div class="flex justify-between text-lg font-bold">
-                    <span>Összesen:</span>
-                    <span id="cart-total" class="price">0 Ft</span>
-                </div>
-                <button class="btn-primary w-full text-lg py-3">Rendelés leadása</button>
-                <button onclick="toggleCart()" class="btn-secondary w-full py-3">Vásárlás folytatása</button>
+                    <span class="font-medium">Fékrendszer</span>
+                </a>
+                <a href="szemely.html" class="bg-gray-50 p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="font-medium">Motor</span>
+                </a>
+                <a href="szemely.html" class="bg-gray-50 p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    <span class="font-medium">Felfüggesztés</span>
+                </a>
+                <a href="szemely.html" class="bg-gray-50 p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                    <span class="font-medium">Elektromos</span>
+                </a>
+                <a href="folyadékok.html" class="bg-gray-50 p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                    </svg>
+                    <span class="font-medium">Olajok</span>
+                </a>
+                <a href="szemely.html" class="bg-gray-50 p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                    </svg>
+                    <span class="font-medium">Hűtés</span>
+                </a>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- FOOTER -->
-    <footer class="bg-gray-900 text-gray-300 mt-20">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-                <!-- Column 1 -->
                 <div>
-                    <h3 class="text-white font-bold mb-4">AutoParts Pro</h3>
-                    <p class="text-sm mb-4">A megbízható autóalkatrész partner minden járműhöz.</p>
-                    <p class="text-sm text-gray-400">© 2025 AutoParts Pro Kft. Minden jog fenntartva.</p>
+                    <h3 class="font-bold text-xl mb-4 text-red-600">AutoParts Pro</h3>
+                    <p class="text-gray-400 text-sm">Megbízható autóalkatrészek BMW, Audi és Mercedes járművekhez.</p>
                 </div>
-
-                <!-- Column 2 -->
                 <div>
-                    <h4 class="text-white font-bold mb-4">Vásárlás</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="hover:text-white">Összes termék</a></li>
-                        <li><a href="#" class="hover:text-white">Új termékek</a></li>
-                        <li><a href="#" class="hover:text-white">Akciós termékek</a></li>
-                        <li><a href="#" class="hover:text-white">Kategóriák</a></li>
+                    <h4 class="font-bold mb-4">Kategóriák</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="szemely.html" class="hover:text-white">Személyautó</a></li>
+                        <li><a href="teher.html" class="hover:text-white">Teherautó</a></li>
+                        <li><a href="motor.html" class="hover:text-white">Motorkerékpár</a></li>
+                        <li><a href="folyadékok.html" class="hover:text-white">Olajok</a></li>
                     </ul>
                 </div>
-
-                <!-- Column 3 -->
                 <div>
-                    <h4 class="text-white font-bold mb-4">Ügyfélszolgálat</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="hover:text-white">Kapcsolat</a></li>
-                        <li><a href="#" class="hover:text-white">GYIK</a></li>
-                        <li><a href="#" class="hover:text-white">Szállítási információ</a></li>
-                        <li><a href="#" class="hover:text-white">Visszatérítési politika</a></li>
+                    <h4 class="font-bold mb-4">Információk</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li><a href="#" class="hover:text-white">Szállítás</a></li>
+                        <li><a href="#" class="hover:text-white">Fizetés</a></li>
+                        <li><a href="#" class="hover:text-white">ÁSZF</a></li>
+                        <li><a href="#" class="hover:text-white">Adatvédelem</a></li>
                     </ul>
                 </div>
-
-                <!-- Column 4 -->
                 <div>
-                    <h4 class="text-white font-bold mb-4">Információ</h4>
-                    <ul class="space-y-2 text-sm">
-                        <li><a href="#" class="hover:text-white">Adatvédelmi szabályzat</a></li>
-                        <li><a href="#" class="hover:text-white">Feltételek és kikötések</a></li>
-                        <li><a href="#" class="hover:text-white">Süti szabályzat</a></li>
-                        <li><a href="#" class="hover:text-white">Blog</a></li>
+                    <h4 class="font-bold mb-4">Kapcsolat</h4>
+                    <ul class="space-y-2 text-sm text-gray-400">
+                        <li>Tel: +36 1 234 5678</li>
+                        <li>Email: info@autoparts.hu</li>
+                        <li>H-P: 8:00 - 17:00</li>
                     </ul>
                 </div>
             </div>
-
-            <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-                <p class="text-sm text-gray-400">Biztonságos fizetés | Gyors szállítás | Ügyfél támogatás</p>
-                <div class="flex gap-4 mt-4 md:mt-0">
-                    <button class="text-gray-400 hover:text-white">Facebook</button>
-                    <button class="text-gray-400 hover:text-white">Instagram</button>
-                    <button class="text-gray-400 hover:text-white">YouTube</button>
-                </div>
+            <div class="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
+                <p>&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
             </div>
         </div>
     </footer>
 
-    <!-- JAVASCRIPT -->
     <script>
-        let cart = [];
-
-        function toggleCart() {
-            const modal = document.getElementById('cart-modal');
-            modal.classList.toggle('hidden');
+        const API_URL = 'http://127.0.0.1/autoparts/api';
+        
+        function getUserId() {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            return user ? user.id : null;
         }
 
-        function addToCart(productName, price) {
-            const existingItem = cart.find(item => item.name === productName);
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+            updateCartCount();
+        });
+
+        function checkLoginStatus() {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const loginLink = document.getElementById('loginLink');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const userInfo = document.getElementById('userInfo');
+            const adminLink = document.getElementById('adminLink');
             
-            if (existingItem) {
-                existingItem.quantity += 1;
+            if (user) {
+                loginLink.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                userInfo.textContent = user.email;
+                userInfo.classList.remove('hidden');
+                
+                if (user.szerepkor === 'admin') {
+                    adminLink.classList.remove('hidden');
+                }
             } else {
-                cart.push({ name: productName, price: price, quantity: 1 });
-            }
-            
-            updateCart();
-            
-            // Show toast notification
-            showToast(`${productName} hozzáadva a kosárhoz`);
-        }
-
-        function removeFromCart(index) {
-            cart.splice(index, 1);
-            updateCart();
-        }
-
-        function updateQuantity(index, quantity) {
-            if (quantity <= 0) {
-                removeFromCart(index);
-            } else {
-                cart[index].quantity = quantity;
-                updateCart();
+                loginLink.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                userInfo.classList.add('hidden');
             }
         }
 
-        function updateCart() {
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+
+        function updateCartCount() {
+            const userId = getUserId();
             const cartCount = document.getElementById('cart-count');
-            const cartItems = document.getElementById('cart-items');
-            const cartTotal = document.getElementById('cart-total');
-
-            let total = 0;
-            let itemCount = 0;
-
-            cartItems.innerHTML = '';
-
-            cart.forEach((item, index) => {
-                const itemTotal = item.price * item.quantity;
-                total += itemTotal;
-                itemCount += item.quantity;
-
-                const cartItem = document.createElement('div');
-                cartItem.className = 'cart-item flex justify-between items-center p-3 bg-gray-50 rounded-lg';
-                cartItem.innerHTML = `
-                    <div class="flex-1">
-                        <p class="font-bold text-gray-900">${item.name}</p>
-                        <p class="text-gray-600 text-sm">${item.price.toLocaleString('hu-HU')} Ft</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button onclick="updateQuantity(${index}, ${item.quantity - 1})" class="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded">-</button>
-                        <span class="w-8 text-center">${item.quantity}</span>
-                        <button onclick="updateQuantity(${index}, ${item.quantity + 1})" class="px-2 py-1 bg-gray-200 hover:bg-gray-300 rounded">+</button>
-                        <button onclick="removeFromCart(${index})" class="px-2 py-1 text-red-600 hover:bg-red-50 rounded">✕</button>
-                    </div>
-                `;
-                cartItems.appendChild(cartItem);
-            });
-
-            cartCount.textContent = itemCount;
-            cartTotal.textContent = total.toLocaleString('hu-HU') + ' Ft';
-
-            if (cart.length === 0) {
-                cartItems.innerHTML = '<p class="text-center text-gray-600 py-8">A kosár üres</p>';
-            }
-        }
-
-        function showToast(message) {
-            const toast = document.createElement('div');
-            toast.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg animate-bounce';
-            toast.textContent = message;
-            document.body.appendChild(toast);
             
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+            if (!userId) {
+                cartCount.textContent = '0';
+                return;
+            }
+            
+            fetch(`${API_URL}/cart.php?action=get&user_id=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.items) {
+                        let count = 0;
+                        data.items.forEach(item => count += parseInt(item.mennyiseg));
+                        cartCount.textContent = count;
+                    }
+                })
+                .catch(() => {
+                    cartCount.textContent = '0';
+                });
         }
-
-        // Initialize cart on page load
-        updateCart();
     </script>
 </body>
 </html>
