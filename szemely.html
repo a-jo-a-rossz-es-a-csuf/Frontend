@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Személygépkocsi kereső - AutoParts Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50">
+    <!-- HEADER -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <a href="index.html" class="text-2xl font-bold text-red-600">AutoParts Pro</a>
+                
+                <div class="hidden md:flex flex-1 max-w-md mx-8">
+                    <input type="text" id="header-search" placeholder="Keresés alkatrészek között..." 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <span id="userInfo" class="text-gray-600 text-sm hidden"></span>
+                    <!-- Bejelentkezés csak ha nincs belépve -->
+                    <a href="bejelentkezes.html" id="loginLink" class="text-gray-600 hover:text-gray-900 font-medium">Bejelentkezés</a>
+                    <!-- Kijelentkezés csak ha be van lépve -->
+                    <button onclick="logout()" id="logoutBtn" class="text-red-600 hover:text-red-700 font-medium hidden">Kijelentkezés</button>
+                    <a href="kosar.html" class="relative p-2 text-gray-600 hover:text-gray-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                        <span id="cart-count" class="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav class="bg-gray-100 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-center gap-8 h-12">
+                <a href="index.html" class="text-gray-600 hover:text-red-600 font-medium">Főoldal</a>
+                <a href="szemely.html" class="text-red-600 font-medium">Személygépkocsi</a>
+                <a href="teher.html" class="text-gray-600 hover:text-red-600 font-medium">Teherautó</a>
+                <a href="motor.html" class="text-gray-600 hover:text-red-600 font-medium">Motorkerékpár</a>
+                <a href="alvazszamkereso.html" class="text-gray-600 hover:text-red-600 font-medium">Alvázszám kereső</a>
+                <a href="folyadékok.html" class="text-gray-600 hover:text-red-600 font-medium">Olajok/folyadékok</a>
+                <a href="cikkszam.html" class="text-gray-600 hover:text-red-600 font-medium">Cikkszám</a>
+                <a href="admin.html" id="adminLink" class="text-gray-600 hover:text-red-600 font-medium hidden">Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SEARCH SECTION -->
+    <section class="bg-white border-b-4 border-red-600 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-gray-50 rounded-lg p-6">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="bg-red-600 p-3 rounded-lg">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2v10a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Személygépkocsi alkatrész kereső</h1>
+                        <p class="text-gray-600">BMW, Audi, Mercedes alkatrészek</p>
+                    </div>
+                </div>
+
+                <div id="statusMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Márka:</label>
+                        <select id="brandSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
+                            <option value="">Válasszon márkát</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Modell:</label>
+                        <select id="modelSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600" disabled>
+                            <option value="">Először válasszon márkát</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Évjárat:</label>
+                        <select id="yearSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600" disabled>
+                            <option value="">Először válasszon modellt</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Motor:</label>
+                        <select id="motorSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600" disabled>
+                            <option value="">Először válasszon modellt</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-center">
+                    <button onclick="searchProducts()" class="bg-red-600 hover:bg-red-700 text-white px-12 py-3 rounded-lg font-bold transition-colors">
+                        Alkatrészek keresése
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section class="py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div id="resultsInfo" class="hidden mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Találatok: <span id="resultsCount">0</span> termék</h2>
+            </div>
+            <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
+            <div id="pagination" class="hidden mt-8 flex justify-center items-center gap-2"></div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-400 text-sm">&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_URL = 'http://127.0.0.1/autoparts/api';
+        let currentPage = 1;
+        let allProducts = [];
+        let currentModellId = null;
+
+        function getUserId() {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            return user ? user.id : null;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+            updateCartCount();
+            loadBrands();
+            
+            document.getElementById('brandSelect').addEventListener('change', function() {
+                const markaId = this.value;
+                if (markaId) {
+                    loadModels(markaId);
+                } else {
+                    resetSelects(['modelSelect', 'yearSelect', 'motorSelect']);
+                }
+            });
+            
+            document.getElementById('modelSelect').addEventListener('change', function() {
+                const modellId = this.value;
+                if (modellId) {
+                    currentModellId = modellId;
+                    loadYearsAndMotors(modellId);
+                } else {
+                    resetSelects(['yearSelect', 'motorSelect']);
+                }
+            });
+        });
+
+        function checkLoginStatus() {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const loginLink = document.getElementById('loginLink');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const userInfo = document.getElementById('userInfo');
+            const adminLink = document.getElementById('adminLink');
+            
+            if (user) {
+                userInfo.textContent = user.email;
+                userInfo.classList.remove('hidden');
+                loginLink.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                
+                if (user.szerepkor === 'admin') {
+                    adminLink.classList.remove('hidden');
+                }
+            } else {
+                loginLink.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                userInfo.classList.add('hidden');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+
+        async function updateCartCount() {
+            const userId = getUserId();
+            const cartCount = document.getElementById('cart-count');
+            
+            if (!userId) {
+                cartCount.textContent = '0';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/cart.php?action=get&user_id=${userId}`);
+                const data = await response.json();
+                if (data.success && data.items) {
+                    let count = 0;
+                    data.items.forEach(item => count += parseInt(item.mennyiseg));
+                    cartCount.textContent = count;
+                }
+            } catch (error) {
+                cartCount.textContent = '0';
+            }
+        }
+
+        function resetSelects(selectIds) {
+            selectIds.forEach(id => {
+                const select = document.getElementById(id);
+                select.innerHTML = '<option value="">Először válasszon ' + (id === 'modelSelect' ? 'márkát' : 'modellt') + '</option>';
+                select.disabled = true;
+            });
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `mb-4 p-3 rounded-lg text-sm ${type === 'success' ? 'bg-green-100 text-green-700' : type === 'error' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`;
+            statusDiv.classList.remove('hidden');
+            if (type === 'success') setTimeout(() => statusDiv.classList.add('hidden'), 3000);
+        }
+
+        async function loadBrands() {
+            try {
+                const response = await fetch(`${API_URL}/cars.php?action=markak&tipus=szemely`);
+                const text = await response.text();
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    showStatus('Szerver hiba. Ellenőrizd a XAMPP-ot.', 'error');
+                    return;
+                }
+                
+                const select = document.getElementById('brandSelect');
+                if (result.success && result.data && result.data.length > 0) {
+                    select.innerHTML = '<option value="">Válasszon márkát</option>';
+                    result.data.forEach(brand => {
+                        select.innerHTML += `<option value="${brand.id}">${brand.nev}</option>`;
+                    });
+                } else {
+                    showStatus('Nincsenek márkák. Importáld a database.sql fájlt!', 'error');
+                }
+            } catch (error) {
+                showStatus('Kapcsolódási hiba! Ellenőrizd hogy a XAMPP fut.', 'error');
+            }
+        }
+
+        async function loadModels(markaId) {
+            const modelSelect = document.getElementById('modelSelect');
+            modelSelect.innerHTML = '<option value="">Betöltés...</option>';
+            modelSelect.disabled = false;
+            resetSelects(['yearSelect', 'motorSelect']);
+            
+            try {
+                const response = await fetch(`${API_URL}/cars.php?action=modellek&marka_id=${markaId}`);
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.length > 0) {
+                    modelSelect.innerHTML = '<option value="">Válasszon modellt</option>';
+                    result.data.forEach(model => {
+                        const years = `${model.evjarat_tol}-${model.evjarat_ig || 'napjainkig'}`;
+                        const displayName = model.generacio ? `${model.modell_nev} ${model.generacio}` : model.modell_nev;
+                        modelSelect.innerHTML += `<option value="${model.id}" data-start="${model.evjarat_tol}" data-end="${model.evjarat_ig || new Date().getFullYear()}">${displayName} (${years})</option>`;
+                    });
+                } else {
+                    modelSelect.innerHTML = '<option value="">Nincs elérhető modell</option>';
+                }
+            } catch (error) {
+                showStatus('Hiba a modellek betöltésekor', 'error');
+            }
+        }
+
+        async function loadYearsAndMotors(modellId) {
+            const yearSelect = document.getElementById('yearSelect');
+            const motorSelect = document.getElementById('motorSelect');
+            const selectedOption = document.getElementById('modelSelect').selectedOptions[0];
+            
+            if (selectedOption && selectedOption.dataset.start) {
+                const startYear = parseInt(selectedOption.dataset.start);
+                const endYear = parseInt(selectedOption.dataset.end);
+                yearSelect.innerHTML = '<option value="">Válasszon évjáratot</option>';
+                for (let year = endYear; year >= startYear; year--) {
+                    yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+                }
+                yearSelect.disabled = false;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/cars.php?action=motorok&modell_id=${modellId}`);
+                const result = await response.json();
+                
+                motorSelect.innerHTML = '<option value="">Válasszon motort</option>';
+                if (result.success && result.data && result.data.length > 0) {
+                    result.data.forEach(motor => {
+                        motorSelect.innerHTML += `<option value="${motor.id}">${motor.hengerurtartalom} cm³ ${motor.teljesitmeny_le} LE ${motor.uzemanyag} (${motor.motor_kod})</option>`;
+                    });
+                    motorSelect.disabled = false;
+                }
+            } catch (error) {
+                console.error('Motor load error:', error);
+            }
+        }
+
+        async function searchProducts() {
+            if (!currentModellId) {
+                alert('Kérjük, válasszon modellt!');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/products.php?action=search&modell_id=${currentModellId}&tipus=szemely`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    allProducts = result.products || [];
+                    displayProducts();
+                }
+            } catch (error) {
+                showStatus('Hiba a kereséskor', 'error');
+            }
+        }
+
+        function displayProducts() {
+            const grid = document.getElementById('productsGrid');
+            const info = document.getElementById('resultsInfo');
+            
+            info.classList.remove('hidden');
+            document.getElementById('resultsCount').textContent = allProducts.length;
+            
+            if (allProducts.length === 0) {
+                grid.innerHTML = '<p class="col-span-4 text-center text-gray-500 py-8">Nincs találat.</p>';
+                return;
+            }
+            
+            grid.innerHTML = allProducts.map(p => `
+                <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+                    <div class="h-40 bg-gray-100 flex items-center justify-center">
+                        <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                    </div>
+                    <div class="p-4">
+                        <p class="text-xs text-gray-500 mb-1">${p.cikkszam} | ${p.gyarto || ''}</p>
+                        <h3 class="font-medium text-gray-900 mb-2">${p.nev}</h3>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xl font-bold text-red-600">${parseInt(p.akcios_ar || p.ar).toLocaleString('hu-HU')} Ft</span>
+                        </div>
+                        <button onclick="addToCart(${p.id})" class="w-full mt-3 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition">
+                            Kosárba
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addToCart(productId) {
+            const userId = getUserId();
+            
+            if (!userId) {
+                alert('A kosárba helyezéshez be kell jelentkezni!');
+                window.location.href = 'bejelentkezes.html?redirect=szemely.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/cart.php?action=add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        alkatresz_id: productId,
+                        mennyiseg: 1
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    updateCartCount();
+                    alert('Termék hozzáadva a kosárhoz!');
+                } else {
+                    alert('Hiba: ' + (data.error || 'Ismeretlen hiba'));
+                }
+            } catch (error) {
+                alert('Hiba a kosárba helyezéskor');
+            }
+        }
+    </script>
+</body>
+</html>
