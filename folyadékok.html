@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olajok és Folyadékok - AutoParts Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-gray-50">
+    <!-- HEADER -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex items-center justify-between">
+                <a href="index.html" class="text-2xl font-bold text-red-600">AutoParts Pro</a>
+                
+                <div class="hidden md:flex flex-1 max-w-md mx-8">
+                    <input type="text" id="header-search" placeholder="Keresés olajok között..." 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"
+                        onkeyup="handleSearch(event)">
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <span id="userInfo" class="text-gray-600 text-sm hidden"></span>
+                    <a href="bejelentkezes.html" id="loginLink" class="text-gray-600 hover:text-gray-900 font-medium">Bejelentkezés</a>
+                    <button onclick="logout()" id="logoutBtn" class="text-red-600 hover:text-red-700 font-medium hidden">Kijelentkezés</button>
+                    <a href="kosar.html" class="relative p-2 text-gray-600 hover:text-gray-900">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+                        </svg>
+                        <span id="cart-count" class="absolute top-0 right-0 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION -->
+    <nav class="bg-gray-100 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-center gap-8 h-12">
+                <a href="index.html" class="text-gray-600 hover:text-red-600 font-medium">Főoldal</a>
+                <a href="szemely.html" class="text-gray-600 hover:text-red-600 font-medium">Személygépkocsi</a>
+                <a href="teher.html" class="text-gray-600 hover:text-red-600 font-medium">Teherautó</a>
+                <a href="motor.html" class="text-gray-600 hover:text-red-600 font-medium">Motorkerékpár</a>
+                <a href="alvazszamkereso.html" class="text-gray-600 hover:text-red-600 font-medium">Alvázszám kereső</a>
+                <a href="folyadékok.html" class="text-red-600 font-medium">Olajok/folyadékok</a>
+                <a href="cikkszam.html" class="text-gray-600 hover:text-red-600 font-medium">Cikkszám</a>
+                <a href="admin.html" id="adminLink" class="text-gray-600 hover:text-red-600 font-medium hidden">Admin</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <section class="bg-gradient-to-r from-amber-600 to-amber-800 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h1 class="text-3xl font-bold mb-4">Olajok és Folyadékok</h1>
+            <p class="text-amber-100">Prémium minőségű motorolajok és folyadékok</p>
+        </div>
+    </section>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-4 py-12">
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+        </div>
+        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+    </main>
+
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-gray-400">&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_URL = 'http://127.0.0.1/autoparts/api';
+        let searchTerm = '';
+
+        function getUserId() {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            return user ? user.id : null;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+            updateCartCount();
+            loadProducts();
+        });
+
+        function checkLoginStatus() {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const loginLink = document.getElementById('loginLink');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const userInfo = document.getElementById('userInfo');
+            const adminLink = document.getElementById('adminLink');
+            
+            if (user) {
+                userInfo.textContent = user.email;
+                userInfo.classList.remove('hidden');
+                loginLink.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                if (user.szerepkor === 'admin') adminLink.classList.remove('hidden');
+            } else {
+                loginLink.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                userInfo.classList.add('hidden');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+
+        async function updateCartCount() {
+            const userId = getUserId();
+            const cartCount = document.getElementById('cart-count');
+            
+            if (!userId) {
+                cartCount.textContent = '0';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/cart.php?action=get&user_id=${userId}`);
+                const data = await response.json();
+                if (data.success && data.items) {
+                    let count = 0;
+                    data.items.forEach(item => count += parseInt(item.mennyiseg));
+                    cartCount.textContent = count;
+                }
+            } catch (error) {
+                cartCount.textContent = '0';
+            }
+        }
+
+        async function loadProducts() {
+            const loading = document.getElementById('loading');
+            const grid = document.getElementById('products-grid');
+            
+            try {
+                const response = await fetch(`${API_URL}/olajok.php?action=list`);
+                const result = await response.json();
+                loading.classList.add('hidden');
+                
+                if (result.success && result.data) {
+                    let products = result.data;
+                    if (searchTerm) products = products.filter(p => p.nev.toLowerCase().includes(searchTerm.toLowerCase()));
+                    
+                    grid.innerHTML = products.map(p => `
+                        <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition">
+                            <div class="w-full h-40 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg mb-4 flex items-center justify-center">
+                                <svg class="w-16 h-16 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-1">${p.kategoria} ${p.viszkozitas ? '| ' + p.viszkozitas : ''}</p>
+                            <h3 class="font-bold text-gray-900 mb-2">${p.nev}</h3>
+                            <p class="text-xs text-gray-500 mb-2">${p.gyarto} | ${p.kiszereles}</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-lg font-bold text-red-600">${parseInt(p.akcios_ar || p.ar).toLocaleString('hu-HU')} Ft</span>
+                                <button onclick="addOilToCart(${p.id})" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold">
+                                    Kosárba
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                loading.classList.add('hidden');
+                grid.innerHTML = '<p class="col-span-4 text-center text-red-500">Hiba a betöltéskor</p>';
+            }
+        }
+
+        function handleSearch(event) {
+            searchTerm = event.target.value;
+            loadProducts();
+        }
+
+        async function addOilToCart(productId) {
+            const userId = getUserId();
+            
+            if (!userId) {
+                alert('A kosárba helyezéshez be kell jelentkezni!');
+                window.location.href = 'bejelentkezes.html?redirect=folyadékok.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/cart.php?action=add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: userId, olaj_id: productId, mennyiseg: 1 })
+                });
+                const result = await response.json();
+                if (result.success) { alert('Kosárba téve!'); updateCartCount(); }
+            } catch (error) { alert('Hiba'); }
+        }
+    </script>
+</body>
+</html>
