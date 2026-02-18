@@ -21,9 +21,7 @@
 
                 <div class="flex items-center gap-4">
                     <span id="userInfo" class="text-gray-600 text-sm hidden"></span>
-                    <!-- Csak ha nincs bejelentkezve -->
                     <a href="bejelentkezes.html" id="loginLink" class="text-gray-600 hover:text-gray-900 font-medium">Bejelentkezés</a>
-                    <!-- Csak ha be van jelentkezve -->
                     <button onclick="logout()" id="logoutBtn" class="text-red-600 hover:text-red-700 font-medium hidden">Kijelentkezés</button>
                     <a href="kosar.html" class="relative p-2 text-gray-600 hover:text-gray-900">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,6 +45,7 @@
                 <a href="alvazszamkereso.html" class="text-gray-600 hover:text-red-600 font-medium">Alvázszám kereső</a>
                 <a href="folyadékok.html" class="text-gray-600 hover:text-red-600 font-medium">Olajok/folyadékok</a>
                 <a href="cikkszam.html" class="text-gray-600 hover:text-red-600 font-medium">Cikkszám</a>
+                <a href="segitsegkeres.html" class="text-gray-600 hover:text-red-600 font-medium">Segítségkérés</a>
                 <a href="admin.html" id="adminLink" class="text-gray-600 hover:text-red-600 font-medium hidden">Admin</a>
             </div>
         </div>
@@ -174,7 +173,7 @@
     </footer>
 
     <script>
-        const API_URL = 'http://127.0.0.1/autoparts/api';
+        const API_URL = 'http://localhost:5000/api';
         
         function getUserId() {
             const user = JSON.parse(localStorage.getItem('user') || 'null');
@@ -224,7 +223,7 @@
                 return;
             }
             
-            fetch(`${API_URL}/cart.php?action=get&user_id=${userId}`)
+            fetch(`${API_URL}/cart?action=get&user_id=${userId}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.success && data.items) {
