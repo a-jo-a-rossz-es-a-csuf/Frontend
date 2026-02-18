@@ -45,6 +45,7 @@
                 <a href="alvazszamkereso.html" class="text-gray-600 hover:text-red-600 font-medium">Alvázszám kereső</a>
                 <a href="folyadékok.html" class="text-gray-600 hover:text-red-600 font-medium">Olajok/folyadékok</a>
                 <a href="cikkszam.html" class="text-gray-600 hover:text-red-600 font-medium">Cikkszám</a>
+                <a href="segitsegkeres.html" class="text-gray-600 hover:text-red-600 font-medium">Segítségkérés</a>
                 <a href="admin.html" id="adminLink" class="text-gray-600 hover:text-red-600 font-medium hidden">Admin</a>
             </div>
         </div>
@@ -177,7 +178,7 @@
     </footer>
 
     <script>
-        const API_URL = 'http://127.0.0.1/autoparts/api';
+        const API_URL = 'http://localhost:5000/api';
         let currentUser = null;
         
         function getUserId() {
@@ -251,7 +252,7 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}/cart.php?action=get&user_id=${userId}`);
+                const response = await fetch(`${API_URL}/cart?action=get&user_id=${userId}`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -352,7 +353,7 @@
                 return;
             }
             try {
-                await fetch(`${API_URL}/cart.php?action=update`, {
+                await fetch(`${API_URL}/cart?action=update`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ cart_id: cartId, mennyiseg: quantity, user_id: userId })
@@ -368,7 +369,7 @@
             if (!userId) return;
             
             try {
-                await fetch(`${API_URL}/cart.php?action=remove`, {
+                await fetch(`${API_URL}/cart?action=remove`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ cart_id: cartId, user_id: userId })
@@ -410,12 +411,21 @@
             };
 
             try {
-                const response = await fetch(`${API_URL}/orders.php?action=create`, {
+                const response = await fetch(`${API_URL}/orders?action=create`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(orderData)
                 });
-                const data = await response.json();
+                
+                const responseText = await response.text();
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    document.getElementById('orderError').textContent = 'Szerver hiba: ' + responseText.substring(0, 200);
+                    document.getElementById('orderError').classList.remove('hidden');
+                    return;
+                }
 
                 if (data.success) {
                     document.getElementById('orderNumber').textContent = data.rendeles_szam;
@@ -423,15 +433,14 @@
                     document.querySelector('.grid').classList.add('hidden');
                     document.getElementById('orderSuccess').classList.remove('hidden');
                     
-                    // Kosár ürítése
-                    await fetch(`${API_URL}/cart.php?action=clear&user_id=${userId}`);
+                    await fetch(`${API_URL}/cart?action=clear&user_id=${userId}`);
                     document.getElementById('cart-count').textContent = '0';
                 } else {
-                    document.getElementById('orderError').textContent = data.error || 'Hiba történt a rendelés során';
+                    document.getElementById('orderError').textContent = data.error || 'Hiba tortent a rendeles soran';
                     document.getElementById('orderError').classList.remove('hidden');
                 }
             } catch (error) {
-                document.getElementById('orderError').textContent = 'Kapcsolódási hiba. Próbálja újra később.';
+                document.getElementById('orderError').textContent = 'Halozati hiba: ' + error.message;
                 document.getElementById('orderError').classList.remove('hidden');
             }
         }
