@@ -115,7 +115,7 @@
     </footer>
 
     <script>
-        const API_URL = 'http://127.0.0.1/autoparts/api';
+        const API_URL = 'http://localhost:5000/api';
         
         document.getElementById('registerForm').addEventListener('submit', handleRegister);
         
@@ -150,7 +150,7 @@
             };
             
             try {
-                const response = await fetch(`${API_URL}/auth.php?action=register`, {
+                const response = await fetch(`${API_URL}/auth?action=register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
