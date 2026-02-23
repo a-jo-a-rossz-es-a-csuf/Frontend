@@ -43,6 +43,8 @@
                 <a href="folyadékok.html" class="text-gray-600 hover:text-red-600 font-medium">Olajok/folyadékok</a>
                 <!-- Cikkszám aktív pirossal -->
                 <a href="cikkszam.html" class="text-red-600 font-medium">Cikkszám</a>
+                <!-- Segítségkérés link hozzáadva -->
+                <a href="segitsegkeres.html" class="text-gray-600 hover:text-red-600 font-medium">Segítségkérés</a>
                 <a href="admin.html" id="adminLink" class="text-gray-600 hover:text-red-600 font-medium hidden">Admin</a>
             </div>
         </div>
@@ -86,7 +88,7 @@
     </footer>
 
     <script>
-        const API_URL = 'http://127.0.0.1/autoparts/api';
+        const API_URL = 'http://localhost:5000/api';
 
         document.addEventListener('DOMContentLoaded', function() {
             checkLoginStatus();
@@ -130,7 +132,7 @@
                 localStorage.setItem('cartSessionId', sessionId);
             }
             try {
-                const response = await fetch(`${API_URL}/cart.php?action=get&session_id=${sessionId}`);
+                const response = await fetch(`${API_URL}/cart?action=get&session_id=${sessionId}`);
                 const data = await response.json();
                 if (data.success && data.items) {
                     let count = 0;
@@ -152,7 +154,7 @@
             grid.innerHTML = '<p class="col-span-4 text-center py-8"><span class="text-gray-500">Keresés...</span></p>';
             
             try {
-                const response = await fetch(`${API_URL}/products.php?action=search_cikkszam&cikkszam=${encodeURIComponent(partNumber)}`);
+                const response = await fetch(`${API_URL}/products?action=search_cikkszam&cikkszam=${encodeURIComponent(partNumber)}`);
                 const text = await response.text();
                 
                 let result;
@@ -211,7 +213,7 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}/cart.php?action=add`, {
+                const response = await fetch(`${API_URL}/cart?action=add`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ session_id: sessionId, alkatresz_id: productId, mennyiseg: 1 })
