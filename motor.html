@@ -43,6 +43,7 @@
                 <a href="alvazszamkereso.html" class="text-gray-600 hover:text-red-600 font-medium">Alvázszám kereső</a>
                 <a href="folyadékok.html" class="text-gray-600 hover:text-red-600 font-medium">Olajok/folyadékok</a>
                 <a href="cikkszam.html" class="text-gray-600 hover:text-red-600 font-medium">Cikkszám</a>
+                <a href="segitsegkeres.html" class="text-gray-600 hover:text-red-600 font-medium">Segítségkérés</a>
                 <a href="admin.html" id="adminLink" class="text-gray-600 hover:text-red-600 font-medium hidden">Admin</a>
             </div>
         </div>
@@ -119,7 +120,7 @@
     </footer>
 
     <script>
-        const API_URL = 'http://127.0.0.1/autoparts/api';
+        const API_URL = 'http://localhost:5000/api';
         let currentModellId = null;
         let allProducts = [];
 
@@ -184,7 +185,7 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}/cart.php?action=get&user_id=${userId}`);
+                const response = await fetch(`${API_URL}/cart?action=get&user_id=${userId}`);
                 const data = await response.json();
                 if (data.success && data.items) {
                     let count = 0;
@@ -213,7 +214,7 @@
 
         async function loadBrands() {
             try {
-                const response = await fetch(`${API_URL}/cars.php?action=markak&tipus=motor`);
+                const response = await fetch(`${API_URL}/cars?action=markak&tipus=motor`);
                 const result = await response.json();
                 const select = document.getElementById('brandSelect');
                 if (result.success && result.data) {
@@ -230,7 +231,7 @@
             resetSelects(['yearSelect', 'motorSelect']);
             
             try {
-                const response = await fetch(`${API_URL}/cars.php?action=modellek&marka_id=${markaId}`);
+                const response = await fetch(`${API_URL}/cars?action=modellek&marka_id=${markaId}`);
                 const result = await response.json();
                 if (result.success && result.data) {
                     s.innerHTML = '<option value="">Válasszon modellt</option>';
@@ -255,7 +256,7 @@
             }
 
             try {
-                const response = await fetch(`${API_URL}/cars.php?action=motorok&modell_id=${modellId}`);
+                const response = await fetch(`${API_URL}/cars?action=motorok&modell_id=${modellId}`);
                 const result = await response.json();
                 motorS.innerHTML = '<option value="">Válasszon motort</option>';
                 if (result.success && result.data) {
@@ -268,7 +269,7 @@
         async function searchProducts() {
             if (!currentModellId) { alert('Válasszon modellt!'); return; }
             try {
-                const response = await fetch(`${API_URL}/products.php?action=search&modell_id=${currentModellId}&tipus=motor`);
+                const response = await fetch(`${API_URL}/products?action=search&modell_id=${currentModellId}&tipus=motor`);
                 const result = await response.json();
                 if (result.success) { allProducts = result.products || []; displayProducts(); }
             } catch (e) { showStatus('Hiba', 'error'); }
@@ -304,7 +305,7 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}/cart.php?action=add`, {
+                const response = await fetch(`${API_URL}/cart?action=add`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId, alkatresz_id: productId, mennyiseg: 1 })
