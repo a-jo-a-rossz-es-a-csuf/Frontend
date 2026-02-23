@@ -46,6 +46,7 @@
                 <a href="alvazszamkereso.html" class="text-gray-600 hover:text-red-600 font-medium">Alvázszám kereső</a>
                 <a href="folyadékok.html" class="text-red-600 font-medium">Olajok/folyadékok</a>
                 <a href="cikkszam.html" class="text-gray-600 hover:text-red-600 font-medium">Cikkszám</a>
+                <a href="segitsegkeres.html" class="text-gray-600 hover:text-red-600 font-medium">Segítségkérés</a>
                 <a href="admin.html" id="adminLink" class="text-gray-600 hover:text-red-600 font-medium hidden">Admin</a>
             </div>
         </div>
@@ -74,7 +75,7 @@
     </footer>
 
     <script>
-        const API_URL = 'http://127.0.0.1/autoparts/api';
+        const API_URL = 'http://localhost:5000/api';
         let searchTerm = '';
 
         function getUserId() {
@@ -124,7 +125,7 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}/cart.php?action=get&user_id=${userId}`);
+                const response = await fetch(`${API_URL}/cart?action=get&user_id=${userId}`);
                 const data = await response.json();
                 if (data.success && data.items) {
                     let count = 0;
@@ -141,7 +142,7 @@
             const grid = document.getElementById('products-grid');
             
             try {
-                const response = await fetch(`${API_URL}/olajok.php?action=list`);
+                const response = await fetch(`${API_URL}/olajok?action=list`);
                 const result = await response.json();
                 loading.classList.add('hidden');
                 
@@ -189,7 +190,7 @@
             }
             
             try {
-                const response = await fetch(`${API_URL}/cart.php?action=add`, {
+                const response = await fetch(`${API_URL}/cart?action=add`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ user_id: userId, olaj_id: productId, mennyiseg: 1 })
