@@ -6,6 +6,7 @@
     <title>Motorkerékpár alkatrészek - AutoParts Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/mobile-nav.js" defer></script>
 </head>
 <body class="bg-gray-50">
     <!-- HEADER -->
@@ -284,13 +285,15 @@
             
             grid.innerHTML = allProducts.map(p => `
                 <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition">
-                    <div class="h-40 bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
-                        <svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                    <div class="h-40 bg-gray-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                        ${p.kep_url
+                            ? `<img src="${p.kep_url}" alt="${p.nev}" class="h-full w-full object-cover rounded-lg">`
+                            : `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>`}
                     </div>
                     <p class="text-xs text-gray-500 mb-1">${p.cikkszam}</p>
                     <h3 class="font-medium text-gray-900 mb-2">${p.nev}</h3>
                     <span class="text-xl font-bold text-orange-500">${parseInt(p.akcios_ar || p.ar).toLocaleString('hu-HU')} Ft</span>
-                    <button onclick="addToCart(${p.id})" class="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-medium">Kosárba</button>
+                    <button onclick="addToCart(${p.id})" class="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-medium">Kosarba</button>
                 </div>
             `).join('');
         }

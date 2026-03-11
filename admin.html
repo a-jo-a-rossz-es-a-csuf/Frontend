@@ -5,6 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - AutoParts Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script>
+        // Dark mode - apply before render to avoid flash
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            var isDark = document.documentElement.classList.contains('dark');
+            document.querySelectorAll('.dark-mode-toggle').forEach(function(btn) {
+                var sun = btn.querySelector('.dm-sun');
+                var moon = btn.querySelector('.dm-moon');
+                if (sun && moon) {
+                    sun.classList.toggle('hidden', !isDark);
+                    moon.classList.toggle('hidden', isDark);
+                }
+            });
+        });
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('darkMode', isDark);
+            document.querySelectorAll('.dark-mode-toggle').forEach(function(btn) {
+                btn.querySelector('.dm-sun').classList.toggle('hidden', !isDark);
+                btn.querySelector('.dm-moon').classList.toggle('hidden', isDark);
+            });
+        }
+    </script>
 </head>
 <body class="bg-gray-100">
     <!-- Admin Login Modal -->
@@ -48,28 +74,35 @@
                         <a href="index.html" class="text-2xl font-bold text-red-500">AutoParts Pro</a>
                         <span class="bg-red-600 text-white text-xs px-2 py-1 rounded">ADMIN</span>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <span id="adminName" class="text-gray-300"></span>
-                        <button onclick="adminLogout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition">
-                            Kijelentkezés
+                    <div class="flex items-center gap-2 sm:gap-4">
+                        <span id="adminName" class="text-gray-300 text-sm hidden sm:inline"></span>
+                        <button onclick="toggleDarkMode()" class="dark-mode-toggle p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition-colors" title="Sotet/Vilagos mod">
+                            <svg class="dm-sun w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                            </svg>
+                            <svg class="dm-moon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                            </svg>
+                        </button>
+                        <button onclick="adminLogout()" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition">
+                            Kilep
                         </button>
                     </div>
                 </div>
             </div>
         </header>
 
-        <nav class="bg-white border-b">
+        <nav class="bg-white border-b overflow-x-auto">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex gap-8">
-                    <button onclick="showTab('products')" class="tab-btn py-4 px-2 border-b-2 border-red-600 text-red-600 font-medium" data-tab="products">Termékek</button>
-                    <button onclick="showTab('orders')" class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium" data-tab="orders">Rendelések</button>
-                    <button onclick="showTab('users')" class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium" data-tab="users">Felhasználók</button>
-                    <!-- Új Segítségkérések fül hozzáadva -->
-                    <button onclick="showTab('support')" class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium" data-tab="support">
-                        Segítségkérések
+                <div class="flex gap-2 sm:gap-8 min-w-max">
+                    <button onclick="showTab('products')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-red-600 text-red-600 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="products">Termekek</button>
+                    <button onclick="showTab('orders')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="orders">Rendelesek</button>
+                    <button onclick="showTab('users')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="users">Felhasznalok</button>
+                    <button onclick="showTab('support')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="support">
+                        Segitseg
                         <span id="supportBadge" class="hidden ml-1 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">0</span>
                     </button>
-                    <button onclick="showTab('stats')" class="tab-btn py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium" data-tab="stats">Statisztikák</button>
+                    <button onclick="showTab('stats')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="stats">Statisztika</button>
                 </div>
             </div>
         </nav>
@@ -84,16 +117,16 @@
                         Új termék
                     </button>
                 </div>
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                    <table class="w-full">
+                <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                    <table class="w-full min-w-[640px]">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cikkszám</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Név</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gyártó</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ár</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Készlet</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Műveletek</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cikkszam</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nev</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gyarto</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ar</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keszlet</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Muveletek</th>
                             </tr>
                         </thead>
                         <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -104,16 +137,16 @@
             <!-- Orders Tab -->
             <div id="ordersTab" class="tab-content hidden">
                 <h2 class="text-2xl font-bold mb-6">Rendelések</h2>
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                    <table class="w-full">
+                <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                    <table class="w-full min-w-[640px]">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rendelésszám</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vásárló</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dátum</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Összeg</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Státusz</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Műveletek</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rendelesszam</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vasarlo</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Osszeg</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statusz</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Muveletek</th>
                             </tr>
                         </thead>
                         <tbody id="ordersTableBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -124,15 +157,15 @@
             <!-- Users Tab -->
             <div id="usersTab" class="tab-content hidden">
                 <h2 class="text-2xl font-bold mb-6">Felhasználók</h2>
-                <div class="bg-white rounded-lg shadow-md overflow-hidden">
-                    <table class="w-full">
+                <div class="bg-white rounded-lg shadow-md overflow-x-auto">
+                    <table class="w-full min-w-[500px]">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Név</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Szerepkör</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Regisztráció</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nev</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Szerepkor</th>
+                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Regisztracio</th>
                             </tr>
                         </thead>
                         <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -574,7 +607,7 @@
                     const tetelek = o.tetelek || [];
                     document.getElementById('orderModalContent').innerHTML = `
                         <div class="space-y-4">
-                            <div class="grid grid-cols-2 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><span class="text-gray-500 text-sm">Rendelésszám:</span><p class="font-bold">${o.rendeles_szam}</p></div>
                                 <div><span class="text-gray-500 text-sm">Státusz:</span><p><span class="px-2 py-1 rounded-full text-xs ${getStatusColor(o.statusz)}">${o.statusz}</span></p></div>
                                 <div><span class="text-gray-500 text-sm">Név:</span><p>${o.nev}</p></div>

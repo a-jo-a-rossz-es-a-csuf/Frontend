@@ -6,6 +6,7 @@
     <title>Kosár - AutoParts Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/mobile-nav.js" defer></script>
 </head>
 <body class="bg-gray-50">
     <!-- HEADER -->
@@ -140,11 +141,112 @@
                     </div>
                     
                     <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                        <h3 class="font-bold mb-2">Fizetési mód</h3>
-                        <label class="flex items-center gap-2 cursor-pointer">
-                            <input type="radio" name="payment" value="utanvet" checked class="text-red-600">
-                            <span>Utánvét (készpénz a futárnál)</span>
-                        </label>
+                        <h3 class="font-bold mb-3">Fizetesi mod</h3>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-3 p-3 rounded-lg border-2 border-transparent hover:bg-gray-100 cursor-pointer transition payment-option" data-method="utanvet">
+                                <input type="radio" name="payment" value="utanvet" checked class="text-red-600 w-4 h-4" onchange="toggleCardForm()">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                </svg>
+                                <span class="font-medium">Utanvet (keszpenz a futarnal)</span>
+                            </label>
+                            <label class="flex items-center gap-3 p-3 rounded-lg border-2 border-transparent hover:bg-gray-100 cursor-pointer transition payment-option" data-method="kartya">
+                                <input type="radio" name="payment" value="kartya" class="text-red-600 w-4 h-4" onchange="toggleCardForm()">
+                                <svg class="w-5 h-5 text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                </svg>
+                                <span class="font-medium">Bankkartyas fizetes</span>
+                                <div class="flex items-center gap-1 ml-auto">
+                                    <span class="text-xs font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">VISA</span>
+                                    <span class="text-xs font-bold text-red-700 bg-red-100 px-1.5 py-0.5 rounded">MC</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Kartya adatok -->
+                    <div id="cardFormSection" class="hidden mt-4 p-4 sm:p-6 bg-gray-50 rounded-lg border-2 border-blue-200">
+                        <div class="flex items-center gap-2 mb-4">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            <h4 class="font-bold text-gray-800">Kartya adatok</h4>
+                            <span class="text-xs text-gray-500 ml-auto">Biztonsagos fizetes</span>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- Kartyaszam -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Kartyaszam *</label>
+                                <div class="relative">
+                                    <input type="text" id="cardNumber" maxlength="19" placeholder="0000 0000 0000 0000"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-lg tracking-wider"
+                                        oninput="formatCardNumber(this)" onblur="validateField('cardNumber')">
+                                    <div id="cardTypeIcon" class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold px-2 py-0.5 rounded hidden"></div>
+                                </div>
+                                <p id="cardNumberError" class="text-red-600 text-xs mt-1 hidden"></p>
+                            </div>
+
+                            <!-- Kartyatulajdonos -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Kartyatulajdonos neve *</label>
+                                <input type="text" id="cardName" placeholder="NAGY PETER"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
+                                    oninput="this.value = this.value.toUpperCase()" onblur="validateField('cardName')">
+                                <p id="cardNameError" class="text-red-600 text-xs mt-1 hidden"></p>
+                            </div>
+
+                            <!-- Lejartat + CVV -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Lejarati datum *</label>
+                                    <input type="text" id="cardExpiry" maxlength="5" placeholder="HH/EE"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-center text-lg"
+                                        oninput="formatExpiry(this)" onblur="validateField('cardExpiry')">
+                                    <p id="cardExpiryError" class="text-red-600 text-xs mt-1 hidden"></p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">CVV/CVC *</label>
+                                    <div class="relative">
+                                        <input type="password" id="cardCvv" maxlength="4" placeholder="***"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-center text-lg"
+                                            oninput="this.value = this.value.replace(/\D/g,'')" onblur="validateField('cardCvv')">
+                                        <button type="button" onclick="toggleCvvVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                            <svg id="cvvEyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                    <p id="cardCvvError" class="text-red-600 text-xs mt-1 hidden"></p>
+                                </div>
+                            </div>
+
+                            <!-- Szamlazasi cim egyezik -->
+                            <label class="flex items-center gap-2 cursor-pointer mt-2">
+                                <input type="checkbox" id="sameBillingAddress" checked class="text-blue-600 w-4 h-4 rounded" onchange="toggleBillingAddress()">
+                                <span class="text-sm text-gray-600">A szamlazasi cim megegyezik a szallitasi cimmel</span>
+                            </label>
+
+                            <!-- Kulonallo szamlazasi cim -->
+                            <div id="billingAddressSection" class="hidden space-y-3 pt-3 border-t border-gray-200">
+                                <h5 class="font-medium text-sm text-gray-700">Szamlazasi cim</h5>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Iranyitoszam *</label>
+                                        <input type="text" id="billingZip" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Varos *</label>
+                                        <input type="text" id="billingCity" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                    </div>
+                                    <div class="sm:col-span-2">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1">Utca, hazszam *</label>
+                                        <input type="text" id="billingStreet" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="orderError" class="hidden mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg"></div>
@@ -307,30 +409,36 @@
             items.forEach(item => {
                 totalItems += parseInt(item.mennyiseg);
                 html += `
-                    <div class="flex items-center gap-4 p-4 border border-gray-200 rounded-lg">
-                        <div class="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                            </svg>
+                    <div class="p-4 border border-gray-200 rounded-lg">
+                        <div class="flex items-start gap-3 sm:gap-4">
+                            <div class="w-14 h-14 sm:w-20 sm:h-20 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                                <svg class="w-8 h-8 sm:w-10 sm:h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <h3 class="font-medium text-sm sm:text-base truncate">${item.nev}</h3>
+                                        <p class="text-xs sm:text-sm text-gray-500 truncate">${item.cikkszam || ''} | ${item.gyarto || ''}</p>
+                                    </div>
+                                    <button onclick="removeItem(${item.id})" class="p-1.5 text-gray-400 hover:text-red-600 shrink-0">
+                                        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="flex items-center justify-between mt-2 flex-wrap gap-2">
+                                    <p class="text-red-600 font-bold text-sm sm:text-base">${parseInt(item.ar).toLocaleString('hu-HU')} Ft</p>
+                                    <div class="flex items-center gap-2">
+                                        <button onclick="updateQuantity(${item.id}, ${item.mennyiseg - 1})" class="w-7 h-7 sm:w-8 sm:h-8 border border-gray-300 rounded hover:bg-gray-100 text-sm">-</button>
+                                        <span class="w-6 sm:w-8 text-center text-sm">${item.mennyiseg}</span>
+                                        <button onclick="updateQuantity(${item.id}, ${item.mennyiseg + 1})" class="w-7 h-7 sm:w-8 sm:h-8 border border-gray-300 rounded hover:bg-gray-100 text-sm">+</button>
+                                    </div>
+                                    <p class="font-bold text-sm sm:text-base">${parseInt(item.osszeg).toLocaleString('hu-HU')} Ft</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="flex-1">
-                            <h3 class="font-medium">${item.nev}</h3>
-                            <p class="text-sm text-gray-500">${item.cikkszam || ''} | ${item.gyarto || ''}</p>
-                            <p class="text-red-600 font-bold">${parseInt(item.ar).toLocaleString('hu-HU')} Ft</p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button onclick="updateQuantity(${item.id}, ${item.mennyiseg - 1})" class="w-8 h-8 border border-gray-300 rounded hover:bg-gray-100">-</button>
-                            <span class="w-8 text-center">${item.mennyiseg}</span>
-                            <button onclick="updateQuantity(${item.id}, ${item.mennyiseg + 1})" class="w-8 h-8 border border-gray-300 rounded hover:bg-gray-100">+</button>
-                        </div>
-                        <div class="text-right min-w-[100px]">
-                            <p class="font-bold">${parseInt(item.osszeg).toLocaleString('hu-HU')} Ft</p>
-                        </div>
-                        <button onclick="removeItem(${item.id})" class="p-2 text-gray-400 hover:text-red-600">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                        </button>
                     </div>
                 `;
             });
@@ -389,6 +497,180 @@
             document.getElementById('checkoutForm').classList.add('hidden');
         }
 
+        // ===== KARTYA FIZETES FUGGVENYEK =====
+
+        function toggleCardForm() {
+            const isCard = document.querySelector('input[name="payment"]:checked').value === 'kartya';
+            const section = document.getElementById('cardFormSection');
+            if (isCard) {
+                section.classList.remove('hidden');
+                section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+                section.classList.add('hidden');
+            }
+            // Active style for selected option
+            document.querySelectorAll('.payment-option').forEach(opt => {
+                opt.classList.remove('border-red-500', 'bg-red-50');
+                opt.classList.add('border-transparent');
+            });
+            const active = document.querySelector('input[name="payment"]:checked').closest('.payment-option');
+            if (active) {
+                active.classList.remove('border-transparent');
+                active.classList.add('border-red-500', 'bg-red-50');
+            }
+        }
+
+        function toggleBillingAddress() {
+            const same = document.getElementById('sameBillingAddress').checked;
+            document.getElementById('billingAddressSection').classList.toggle('hidden', same);
+        }
+
+        function toggleCvvVisibility() {
+            const input = document.getElementById('cardCvv');
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+        }
+
+        function formatCardNumber(input) {
+            let v = input.value.replace(/\D/g, '').substring(0, 16);
+            let formatted = v.replace(/(.{4})/g, '$1 ').trim();
+            input.value = formatted;
+            // Detect card type
+            detectCardType(v);
+        }
+
+        function detectCardType(num) {
+            const icon = document.getElementById('cardTypeIcon');
+            icon.classList.remove('hidden');
+            if (/^4/.test(num)) {
+                icon.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700';
+                icon.textContent = 'VISA';
+            } else if (/^5[1-5]/.test(num) || /^2[2-7]/.test(num)) {
+                icon.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold px-2 py-0.5 rounded bg-red-100 text-red-700';
+                icon.textContent = 'MC';
+            } else if (/^3[47]/.test(num)) {
+                icon.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold px-2 py-0.5 rounded bg-green-100 text-green-700';
+                icon.textContent = 'AMEX';
+            } else if (num.length === 0) {
+                icon.classList.add('hidden');
+            } else {
+                icon.className = 'absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600';
+                icon.textContent = 'KARTYA';
+            }
+        }
+
+        function formatExpiry(input) {
+            let v = input.value.replace(/\D/g, '').substring(0, 4);
+            if (v.length >= 2) {
+                v = v.substring(0, 2) + '/' + v.substring(2);
+            }
+            input.value = v;
+        }
+
+        function validateField(fieldId) {
+            const el = document.getElementById(fieldId);
+            const err = document.getElementById(fieldId + 'Error');
+            if (!el || !err) return true;
+            err.classList.add('hidden');
+            let value = el.value.trim();
+            let valid = true;
+
+            switch(fieldId) {
+                case 'cardNumber': {
+                    const digits = value.replace(/\s/g, '');
+                    if (digits.length < 13 || digits.length > 19) {
+                        err.textContent = 'A kartyaszam 13-19 szamjegyet kell tartalmazzon';
+                        valid = false;
+                    } else if (!luhnCheck(digits)) {
+                        err.textContent = 'Ervenytelen kartyaszam';
+                        valid = false;
+                    }
+                    break;
+                }
+                case 'cardName': {
+                    if (value.length < 3) {
+                        err.textContent = 'Adja meg a kartyatulajdonos nevet';
+                        valid = false;
+                    } else if (!/^[A-Z\s\-\.]+$/.test(value)) {
+                        err.textContent = 'Csak betuk, szokozok es kotojel megengedett';
+                        valid = false;
+                    }
+                    break;
+                }
+                case 'cardExpiry': {
+                    if (!/^\d{2}\/\d{2}$/.test(value)) {
+                        err.textContent = 'Formatum: HH/EE (pl. 03/27)';
+                        valid = false;
+                    } else {
+                        const [m, y] = value.split('/').map(Number);
+                        const now = new Date();
+                        const expYear = 2000 + y;
+                        const expMonth = m;
+                        if (m < 1 || m > 12) {
+                            err.textContent = 'Ervenytelen honap (01-12)';
+                            valid = false;
+                        } else if (expYear < now.getFullYear() || (expYear === now.getFullYear() && expMonth < now.getMonth() + 1)) {
+                            err.textContent = 'A kartya lejart';
+                            valid = false;
+                        }
+                    }
+                    break;
+                }
+                case 'cardCvv': {
+                    if (!/^\d{3,4}$/.test(value)) {
+                        err.textContent = 'A CVV 3 vagy 4 szamjegy';
+                        valid = false;
+                    }
+                    break;
+                }
+            }
+            if (!valid) err.classList.remove('hidden');
+            el.classList.toggle('border-red-500', !valid);
+            el.classList.toggle('border-gray-300', valid);
+            return valid;
+        }
+
+        // Luhn algorithm - kartyaszam ellenorzes
+        function luhnCheck(num) {
+            let sum = 0;
+            let alt = false;
+            for (let i = num.length - 1; i >= 0; i--) {
+                let n = parseInt(num[i], 10);
+                if (alt) {
+                    n *= 2;
+                    if (n > 9) n -= 9;
+                }
+                sum += n;
+                alt = !alt;
+            }
+            return sum % 10 === 0;
+        }
+
+        function validateAllCardFields() {
+            const f1 = validateField('cardNumber');
+            const f2 = validateField('cardName');
+            const f3 = validateField('cardExpiry');
+            const f4 = validateField('cardCvv');
+
+            // Szamlazasi cim ellenorzes ha kulonbozo
+            if (!document.getElementById('sameBillingAddress').checked) {
+                const bz = document.getElementById('billingZip').value.trim();
+                const bc = document.getElementById('billingCity').value.trim();
+                const bs = document.getElementById('billingStreet').value.trim();
+                if (!bz || !bc || !bs) {
+                    document.getElementById('orderError').textContent = 'Kerem toltse ki a szamlazasi cim osszes mezot!';
+                    document.getElementById('orderError').classList.remove('hidden');
+                    return false;
+                }
+            }
+            return f1 && f2 && f3 && f4;
+        }
+
+        // Init default selected style
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(toggleCardForm, 100);
+        });
+
         async function submitOrder(event) {
             event.preventDefault();
             const userId = getUserId();
@@ -397,6 +679,16 @@
                 return;
             }
             
+            const paymentMethod = document.querySelector('input[name="payment"]:checked').value;
+
+            // Kartyas fizetes validacio
+            if (paymentMethod === 'kartya') {
+                document.getElementById('orderError').classList.add('hidden');
+                if (!validateAllCardFields()) {
+                    return;
+                }
+            }
+
             const orderData = {
                 user_id: userId,
                 nev: document.getElementById('orderName').value,
@@ -407,7 +699,7 @@
                 utca: document.getElementById('orderStreet').value,
                 hazszam: document.getElementById('orderHouse').value,
                 megjegyzes: document.getElementById('orderNote').value,
-                fizetes_mod: 'utanvet'
+                fizetes_mod: paymentMethod
             };
 
             try {
@@ -431,6 +723,17 @@
                     document.getElementById('orderNumber').textContent = data.rendeles_szam;
                     document.getElementById('checkoutForm').classList.add('hidden');
                     document.querySelector('.grid').classList.add('hidden');
+
+                    // Kartyas fizetes eseten frissitsuk a success uzenetet
+                    if (paymentMethod === 'kartya') {
+                        const cardNum = document.getElementById('cardNumber').value.replace(/\s/g, '');
+                        const lastFour = cardNum.slice(-4);
+                        document.querySelector('#orderSuccess h2').textContent = 'Sikeres fizetes es rendeles!';
+                        document.querySelector('#orderSuccess p:first-of-type').innerHTML = 
+                            'Rendelesi szam: <span class="font-bold">' + data.rendeles_szam + '</span>' +
+                            '<br><span class="text-green-600">Kartyas fizetes sikeres</span> - **** **** **** ' + lastFour;
+                    }
+
                     document.getElementById('orderSuccess').classList.remove('hidden');
                     
                     await fetch(`${API_URL}/cart?action=clear&user_id=${userId}`);
