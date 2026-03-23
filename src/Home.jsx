@@ -1,0 +1,197 @@
+import { Link } from 'react-router-dom';
+import './assets/css/Home.css'
+
+function Home() {
+    const API_URL = 'http://localhost:5000/api';
+
+    function getUserId() {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        return user ? user.id : null;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        checkLoginStatus();
+        updateCartCount();
+    });
+
+    function checkLoginStatus() {
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        const loginLink = document.getElementById('loginLink');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userInfo = document.getElementById('userInfo');
+        const adminLink = document.getElementById('adminLink');
+
+        if (user) {
+            loginLink.classList.add('hidden');
+            logoutBtn.classList.remove('hidden');
+            userInfo.textContent = user.email;
+            userInfo.classList.remove('hidden');
+
+            if (user.szerepkor === 'admin') {
+                adminLink.classList.remove('hidden');
+            }
+        } else {
+            loginLink.classList.remove('hidden');
+            logoutBtn.classList.add('hidden');
+            userInfo.classList.add('hidden');
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        window.location.reload();
+    }
+
+    function updateCartCount() {
+        const userId = getUserId();
+        const cartCount = document.getElementById('cart-count');
+
+        if (!userId) {
+            cartCount.textContent = '0';
+            return;
+        }
+
+        fetch(`${API_URL}/cart?action=get&user_id=${userId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.items) {
+                    let count = 0;
+                    data.items.forEach(item => count += parseInt(item.mennyiseg));
+                    cartCount.textContent = count;
+                }
+            })
+            .catch(() => {
+                cartCount.textContent = '0';
+            });
+    }
+
+    return (
+        <>
+
+
+            {/* <!-- HERO SECTION --> */}
+            <section class="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-10 md:py-16">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                    <h1 class="text-2xl sm:text-3xl md:text-5xl font-bold mb-3 md:mb-4">Autoalkatreszek a Legjobb Arakon</h1>
+                    <p class="text-gray-300 text-sm sm:text-base md:text-lg mb-6 md:mb-8">BMW, Audi, Mercedes alkatreszek - Teherautok - Motorkerekparok</p>
+                    <div class="flex flex-col sm:flex-row flex-wrap justify-center gap-3 sm:gap-4">
+                        <a href="szemely.html" class="bg-red-600 hover:bg-red-700 px-6 sm:px-8 py-3 rounded-lg font-bold transition text-sm sm:text-base">Szemelyauto alkatreszek</a>
+                        <a href="teher.html" class="bg-white text-gray-900 hover:bg-gray-100 px-6 sm:px-8 py-3 rounded-lg font-bold transition text-sm sm:text-base">Teherauto alkatreszek</a>
+                        <a href="motor.html" class="border-2 border-white hover:bg-white hover:text-gray-900 px-6 sm:px-8 py-3 rounded-lg font-bold transition text-sm sm:text-base">Motorkerekpar</a>
+                    </div>
+                </div>
+            </section>
+
+            {/* <!-- BRANDS SECTION --> */}
+            <section class="py-12">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 class="text-2xl font-bold text-center mb-8">Személyautó márkáink</h2>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
+                        <a href="/szemely" class="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                            <div class="text-4xl font-bold text-blue-600 mb-2">BMW</div>
+                            <p class="text-gray-600">1-es, 3-as, 5-os, X3, X5</p>
+                        </a>
+                        <a href="/szemely" class="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                            <div class="text-4xl font-bold text-gray-800 mb-2">Audi</div>
+                            <p class="text-gray-600">A3, A4, A6, Q5, Q7</p>
+                        </a>
+                        <a href="/szemely" class="bg-white p-8 rounded-lg shadow-md hover:shadow-xl transition text-center">
+                            <div class="text-4xl font-bold text-gray-700 mb-2">Mercedes</div>
+                            <p class="text-gray-600">A, C, E, GLA, GLC, GLE</p>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            {/* <!-- CATEGORIES --> */}
+            <section class="py-12 bg-white">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <h2 class="text-2xl font-bold text-center mb-8">Kategóriák</h2>
+                    <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+                        <a href="szemely.html" class="bg-gray-50 p-3 sm:p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span class="font-medium text-xs sm:text-sm md:text-base">Fekrendszer</span>
+                        </a>
+                        <a href="szemely.html" class="bg-gray-50 p-3 sm:p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            <span class="font-medium text-xs sm:text-sm md:text-base">Motor</span>
+                        </a>
+                        <a href="szemely.html" class="bg-gray-50 p-3 sm:p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                            </svg>
+                            <span class="font-medium text-xs sm:text-sm md:text-base">Felfuggesztes</span>
+                        </a>
+                        <a href="szemely.html" class="bg-gray-50 p-3 sm:p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <span class="font-medium text-xs sm:text-sm md:text-base">Elektromos</span>
+                        </a>
+                        <a href="folyadékok.html" class="bg-gray-50 p-3 sm:p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                            </svg>
+                            <span class="font-medium text-xs sm:text-sm md:text-base">Olajok</span>
+                        </a>
+                        <a href="szemely.html" class="bg-gray-50 p-3 sm:p-6 rounded-lg hover:bg-red-50 hover:border-red-600 border-2 border-transparent transition text-center">
+                            <svg class="w-10 h-10 mx-auto mb-2 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                            </svg>
+                            <span class="font-medium text-xs sm:text-sm md:text-base">Hutes</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+
+            {/* <!-- FOOTER --> */}
+            <footer class="bg-gray-900 text-white py-12">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                        <div>
+                            <h3 class="font-bold text-xl mb-4 text-red-600">AutoParts Pro</h3>
+                            <p class="text-gray-400 text-sm">Megbízható autóalkatrészek BMW, Audi és Mercedes járművekhez.</p>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-4">Kategóriák</h4>
+                            <ul class="space-y-2 text-sm text-gray-400">
+                                <li><a href="szemely.html" class="hover:text-white">Személyautó</a></li>
+                                <li><a href="teher.html" class="hover:text-white">Teherautó</a></li>
+                                <li><a href="motor.html" class="hover:text-white">Motorkerékpár</a></li>
+                                <li><a href="folyadékok.html" class="hover:text-white">Olajok</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-4">Információk</h4>
+                            <ul class="space-y-2 text-sm text-gray-400">
+                                <li><a href="#" class="hover:text-white">Szállítás</a></li>
+                                <li><a href="#" class="hover:text-white">Fizetés</a></li>
+                                <li><a href="#" class="hover:text-white">ÁSZF</a></li>
+                                <li><a href="#" class="hover:text-white">Adatvédelem</a></li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold mb-4">Kapcsolat</h4>
+                            <ul class="space-y-2 text-sm text-gray-400">
+                                <li>Tel: +36 1 234 5678</li>
+                                <li>Email: info@autoparts.hu</li>
+                                <li>H-P: 8:00 - 17:00</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="border-t border-gray-800 pt-8 text-center text-sm text-gray-400">
+                        <p>&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
+                    </div>
+                </div>
+            </footer>
+        </>
+    )
+}
+
+export default Home

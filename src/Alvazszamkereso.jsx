@@ -1,0 +1,315 @@
+import React from 'react'
+
+export default function Alvazszamkereso() {
+    const API_URL = 'http://localhost:5000/api';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLoginStatus();
+            updateCartCount();
+            
+            document.getElementById('vin-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') searchByVIN();
+            });
+        });
+
+        function checkLoginStatus() {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const loginLink = document.getElementById('loginLink');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const userInfo = document.getElementById('userInfo');
+            const adminLink = document.getElementById('adminLink');
+            
+            if (user) {
+                userInfo.textContent = user.email;
+                userInfo.classList.remove('hidden');
+                loginLink.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+                if (user.szerepkor === 'admin') adminLink.classList.remove('hidden');
+            } else {
+                loginLink.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+                userInfo.classList.add('hidden');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            window.location.reload();
+        }
+
+        async function updateCartCount() {
+            let sessionId = localStorage.getItem('cartSessionId');
+            if (!sessionId) {
+                sessionId = 'sess_' + Math.random().toString(36).substr(2, 16);
+                localStorage.setItem('cartSessionId', sessionId);
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/cart?action=get&session_id=${sessionId}`);
+                const data = await response.json();
+                if (data.success) {
+                    let count = 0;
+                    data.items.forEach(item => count += parseInt(item.mennyiseg));
+                    document.getElementById('cart-count').textContent = count;
+                }
+            } catch (error) {
+                console.error('Cart error:', error);
+            }
+        }
+
+        async function searchByVIN() {
+            const vin = document.getElementById('vin-input').value.trim().toUpperCase();
+            
+            if (vin.length !== 17) {
+                alert('Adjon meg egy ervenyes 17 karakteres alvazszamot!');
+                return;
+            }
+
+            // Loading allapot
+            document.getElementById('search-results').classList.remove('hidden');
+            document.getElementById('vehicle-info').innerHTML = `
+                <div class="flex items-center justify-center py-6">
+                    <svg class="animate-spin h-8 w-8 text-red-600 mr-3" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                    </svg>
+                    <span class="text-gray-600 text-lg">Kereses folyamatban...</span>
+                </div>
+            `;
+            document.getElementById('parts-grid').innerHTML = '';
+
+            try {
+                const response = await fetch(`${API_URL}/cars?action=vin_search&vin=${vin}`);
+                const data = await response.json();
+
+                if (data.success && data.vehicle) {
+                    const v = data.vehicle;
+                    const tipusLabel = v.tipus === 'szemely' ? 'Szemelygepkocsi' : v.tipus === 'teher' ? 'Teherauto' : 'Motorkerekpar';
+                    const tipusIcon = v.tipus === 'motor' 
+                        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>'
+                        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0H3m10 0h2m4 0a2 2 0 01-2-2V8h2a2 2 0 012 2v4a2 2 0 01-2 2z"></path>';
+
+                    document.getElementById('vehicle-info').innerHTML = `
+                        <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
+                            <div class="flex items-center gap-4">
+                                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                                    <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-green-700">Jarmu azonositva</h3>
+                                    <p class="text-gray-500 text-sm">VIN: ${v.alvazszam}</p>
+                                </div>
+                            </div>
+                            <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <p class="text-xs text-gray-500">Marka / Modell</p>
+                                    <p class="font-bold">${v.marka} ${v.modell}</p>
+                                    <p class="text-sm text-gray-600">${v.generacio || ''} ${v.karosszeria || ''}</p>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <p class="text-xs text-gray-500">Evjarat</p>
+                                    <p class="font-bold">${v.evjarat || '-'}</p>
+                                    <p class="text-sm text-gray-600">${tipusLabel}</p>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <p class="text-xs text-gray-500">Motor</p>
+                                    <p class="font-bold">${v.motor_kod || '-'}</p>
+                                    <p class="text-sm text-gray-600">${v.hengerurtartalom ? v.hengerurtartalom + ' cm3' : ''} ${v.uzemanyag || ''}</p>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-3">
+                                    <p class="text-xs text-gray-500">Teljesitmeny</p>
+                                    <p class="font-bold">${v.teljesitmeny_le ? v.teljesitmeny_le + ' LE' : '-'}</p>
+                                    <p class="text-sm text-gray-600">${v.szin ? 'Szin: ' + v.szin : ''}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Alkatreszek
+                    const products = data.products || [];
+                    if (products.length === 0) {
+                        document.getElementById('parts-grid').innerHTML = `
+                            <div class="text-center col-span-4 py-12">
+                                <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                </svg>
+                                <p class="text-gray-500 text-lg">Jelenleg nincsenek elerheto alkatreszek ehhez a jarmuhoz.</p>
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('parts-grid').innerHTML = products.map(p => `
+                            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                                <div class="h-40 bg-gray-100 flex items-center justify-center">
+                                    ${p.kep_url 
+                                        ? `<img src="${p.kep_url}" alt="${p.nev}" class="h-full w-full object-cover">` 
+                                        : `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                          </svg>`}
+                                </div>
+                                <div class="p-4">
+                                    <p class="text-xs text-gray-500 mb-1">${p.cikkszam} | ${p.gyarto || ''}</p>
+                                    <h3 class="font-bold text-sm mb-2 line-clamp-2">${p.nev}</h3>
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            ${p.akcios_ar 
+                                                ? `<span class="text-red-600 font-bold">${Number(p.akcios_ar).toLocaleString()} Ft</span>
+                                                   <span class="text-gray-400 text-xs line-through ml-1">${Number(p.ar).toLocaleString()} Ft</span>`
+                                                : `<span class="text-gray-900 font-bold">${Number(p.ar).toLocaleString()} Ft</span>`}
+                                        </div>
+                                        <span class="text-xs ${p.keszlet > 0 ? 'text-green-600' : 'text-red-600'}">${p.keszlet > 0 ? 'Keszleten' : 'Nincs keszleten'}</span>
+                                    </div>
+                                    ${p.keszlet > 0 ? `
+                                    <button onclick="addToCart(${p.id})" class="w-full mt-3 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-bold transition-colors">
+                                        Kosarba
+                                    </button>` : ''}
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    document.getElementById('vehicle-info').innerHTML = `
+                        <div class="flex items-center gap-4 py-4">
+                            <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-red-700">Jarmu nem talalhato</h3>
+                                <p class="text-gray-600">${data.error || 'A megadott alvazszam nem szerepel az adatbazisunkban.'}</p>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('parts-grid').innerHTML = '';
+                }
+            } catch (error) {
+                document.getElementById('vehicle-info').innerHTML = `
+                    <div class="text-center py-6">
+                        <p class="text-red-600 font-bold">Halozati hiba tortent. Ellenorizze, hogy a szerver fut-e.</p>
+                    </div>
+                `;
+            }
+
+            document.getElementById('search-results').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function addToCart(productId) {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            if (!user) {
+                alert('Kerem jelentkezzen be a vasarlashoz!');
+                window.location.href = 'bejelentkezes.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/cart?action=add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: user.id, alkatresz_id: productId, mennyiseg: 1 })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    updateCartCount();
+                    alert('Termek hozzaadva a kosarhoz!');
+                }
+            } catch (error) {
+                alert('Hiba tortent a kosarba tetel soran.');
+            }
+        }
+  return (
+    <div>
+        {/* VIN SEARCH HERO */}
+    <section class="bg-gradient-to-r from-gray-900 to-gray-800 py-16">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="mb-8">
+                <div class="inline-flex items-center justify-center w-20 h-20 bg-red-600 rounded-full mb-6">
+                    <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white mb-4">Alvázszám Kereső</h1>
+                <p class="text-gray-300 text-lg max-w-2xl mx-auto">
+                    Adja meg járműve 17 karakteres alvázszámát (VIN) a pontos alkatrész azonosításhoz
+                </p>
+            </div>
+
+            {/* <!-- VIN Input --> */}
+            <div class="bg-white rounded-xl shadow-2xl p-8 mb-8">
+                <div class="mb-6">
+                    <label class="block text-left text-sm font-medium text-gray-700 mb-2">Alvázszám (VIN)</label>
+                    <input 
+                        type="text" 
+                        id="vin-input"
+                        maxlength="17"
+                        placeholder="Pl.: WVWZZZ3CZWE123456"
+                        class="w-full px-4 py-4 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-red-600 text-center text-xl uppercase"
+                        oninput="this.value = this.value.toUpperCase()"/>
+                </div>
+
+                <button onclick="searchByVIN()" class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    Alkatrész Keresés
+                </button>
+            </div>
+        </div>
+    </section>
+
+    {/* <!-- VIN LOCATION INFO --> */}
+    <section class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-bold text-center mb-8">Hol találom az alvázszámot?</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-gray-50 rounded-lg p-6 text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4">
+                        <span class="text-red-600 font-bold">1</span>
+                    </div>
+                    <h3 class="font-bold mb-2">Forgalmi engedély</h3>
+                    <p class="text-gray-600 text-sm">Az E mezőben található a 17 karakteres azonosító</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-6 text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4">
+                        <span class="text-red-600 font-bold">2</span>
+                    </div>
+                    <h3 class="font-bold mb-2">Szélvédő alatt</h3>
+                    <p class="text-gray-600 text-sm">A műszerfal bal oldalán, a szélvédő alatt</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-6 text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4">
+                        <span class="text-red-600 font-bold">3</span>
+                    </div>
+                    <h3 class="font-bold mb-2">Ajtó kereten</h3>
+                    <p class="text-gray-600 text-sm">A vezetőoldali ajtó keret alsó részén</p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-6 text-center">
+                    <div class="inline-flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-4">
+                        <span class="text-red-600 font-bold">4</span>
+                    </div>
+                    <h3 class="font-bold mb-2">Motortéren</h3>
+                    <p class="text-gray-600 text-sm">A motortérben található adattáblán</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {/* <!-- SEARCH RESULTS --> */}
+    <section id="search-results" class="py-12 bg-gray-50 hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div id="vehicle-info" class="bg-white rounded-lg shadow-md p-6 mb-8"></div>
+            <h2 class="text-2xl font-bold mb-6">Elérhető alkatrészek</h2>
+            <div id="parts-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+        </div>
+    </section>
+
+    {/* <!-- FOOTER --> */}
+    <footer class="bg-gray-900 text-white py-8 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-gray-400">&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
+        </div>
+    </footer></div>
+  )
+}

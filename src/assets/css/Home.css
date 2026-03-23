@@ -1,0 +1,394 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== DARK MODE ===== */
+.dark body,
+.dark {
+  background-color: #111827;
+  color: #e5e7eb;
+}
+
+/* Header */
+.dark header {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+.dark header a,
+.dark header span,
+.dark header button {
+  color: #d1d5db;
+}
+.dark header a:hover,
+.dark header button:hover {
+  color: #f9fafb;
+}
+.dark header input {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+.dark header .text-red-600 {
+  color: #ef4444 !important;
+}
+
+/* Nav */
+.dark nav {
+  background-color: #1f2937 !important;
+  border-color: #374151 !important;
+}
+.dark nav a {
+  color: #9ca3af;
+}
+.dark nav a:hover,
+.dark nav a.text-red-600 {
+  color: #ef4444;
+}
+
+/* Main content */
+.dark section {
+  background-color: #111827;
+}
+.dark .bg-white {
+  background-color: #1f2937 !important;
+}
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: #1f2937 !important;
+}
+.dark .bg-gray-200 {
+  background-color: #374151 !important;
+}
+
+/* Text */
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: #f3f4f6 !important;
+}
+.dark .text-gray-700,
+.dark .text-gray-600 {
+  color: #d1d5db !important;
+}
+.dark .text-gray-500 {
+  color: #9ca3af !important;
+}
+.dark .text-gray-400 {
+  color: #6b7280 !important;
+}
+
+/* Borders */
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: #374151 !important;
+}
+.dark .border-b {
+  border-color: #374151 !important;
+}
+.dark .divide-gray-200 > * + * {
+  border-color: #374151 !important;
+}
+
+/* Cards & Shadows */
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-sm {
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.3) !important;
+}
+.dark .rounded-lg,
+.dark .rounded-xl {
+  border-color: #374151;
+}
+
+/* Forms */
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #374151 !important;
+  border-color: #4b5563 !important;
+  color: #e5e7eb !important;
+}
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #6b7280 !important;
+}
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Tables */
+.dark table thead {
+  background-color: #1f2937 !important;
+}
+.dark table thead th {
+  color: #9ca3af !important;
+}
+.dark table tbody tr {
+  background-color: #111827 !important;
+}
+.dark table tbody tr:hover {
+  background-color: #1f2937 !important;
+}
+.dark .bg-gray-50 th,
+.dark thead.bg-gray-50 {
+  background-color: #1e293b !important;
+}
+
+/* Footer */
+.dark footer {
+  background-color: #0f172a !important;
+}
+
+/* Hero/Gradient sections - keep dark */
+.dark .bg-gradient-to-r {
+  background: linear-gradient(to right, #0f172a, #1e293b) !important;
+}
+
+/* Red buttons stay same */
+.dark .bg-red-600 {
+  background-color: #dc2626 !important;
+}
+.dark .bg-red-600:hover {
+  background-color: #b91c1c !important;
+}
+
+/* Hover states */
+.dark .hover\:bg-gray-50:hover,
+.dark .hover\:bg-gray-100:hover {
+  background-color: #374151 !important;
+}
+.dark .hover\:bg-red-50:hover {
+  background-color: #451a1a !important;
+}
+
+/* Login box */
+.dark .login-box {
+  background-color: #1f2937;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+}
+.dark .login-box h2 {
+  color: #f3f4f6;
+}
+.dark .login-box p,
+.dark .register-link {
+  color: #9ca3af;
+}
+.dark .form-group label {
+  color: #d1d5db;
+}
+.dark .form-group input {
+  background-color: #374151;
+  border-color: #4b5563;
+  color: #e5e7eb;
+}
+
+/* VIN Search - already dark */
+.dark .vin-search-container {
+  background: linear-gradient(135deg, #0f172a 0%, #020617 100%);
+}
+
+/* Mobile menu */
+.dark #mobileMenuPanel {
+  background-color: #1f2937 !important;
+}
+.dark #mobileMenuPanel a {
+  color: #d1d5db;
+}
+.dark #mobileMenuPanel a:hover {
+  background-color: #374151;
+  color: #ef4444;
+}
+.dark #mobileMenuPanel .border-gray-200,
+.dark #mobileMenuPanel .border-b {
+  border-color: #374151 !important;
+}
+.product-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+.cart-item {
+  animation: slideIn 0.3s ease;
+}
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.btn-primary {
+  background-color: #dc2626;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+}
+.btn-primary:hover {
+  background-color: #b91c1c;
+}
+.btn-secondary {
+  background-color: #f3f4f6;
+  color: #1f2937;
+  padding: 10px 20px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.btn-secondary:hover {
+  background-color: #e5e7eb;
+}
+.price {
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+.star {
+  color: #fbbf24;
+}
+
+/* Login Form Styles */
+.login-container {
+  min-height: calc(100vh - 200px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+.login-box {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 420px;
+}
+.login-box h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+.login-box p {
+  color: #6b7280;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+.form-group {
+  margin-bottom: 1.25rem;
+}
+.form-group label {
+  display: block;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+.form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-group input:focus {
+  outline: none;
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+.forgot-password {
+  text-align: right;
+  margin-bottom: 1.5rem;
+}
+.forgot-password a {
+  color: #dc2626;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+.forgot-password a:hover {
+  text-decoration: underline;
+}
+.divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0;
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid #e5e7eb;
+}
+.divider span {
+  padding: 0 1rem;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}
+.register-link {
+  text-align: center;
+  margin-top: 1.5rem;
+  color: #6b7280;
+}
+.register-link a {
+  color: #dc2626;
+  font-weight: 500;
+  text-decoration: none;
+}
+.register-link a:hover {
+  text-decoration: underline;
+}
+
+/* VIN Search Styles */
+.vin-search-container {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  min-height: 400px;
+  padding: 3rem 0;
+}
+.vin-input {
+  font-family: "Courier New", monospace;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-size: 1.125rem;
+}
+.vin-info-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+/* Fluids Page Styles */
+.fluid-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.fluid-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+.category-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
