@@ -1,915 +1,627 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-export default function Admin() {
+const StatCard = ({ title, value, icon }) => (
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex items-center gap-4">
+        <div className="bg-red-50 text-red-600 p-4 rounded-xl">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={icon} />
+            </svg>
+        </div>
+        <div>
+            <p className="text-sm text-gray-500 font-bold uppercase tracking-wider">{title}</p>
+            <p className="text-2xl font-black text-gray-900">{value}</p>
+        </div>
+    </div>
+);
+
+const Admin = () => {
     const API_URL = 'http://localhost:5000/api';
-        let adminToken = '';
-        let categories = [];
-        let adminUser = null;
-        let currentSupportFilter = 'all';
+    const navigate = useNavigate();
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const user = JSON.parse(localStorage.getItem('adminUser') || 'null');
-            if (user && user.szerepkor === 'admin') {
-                adminUser = user;
-                showAdminPanel(user);
-            }
-        });
+    const [adminUser, setAdminUser] = useState(null);
+    const [activeTab, setActiveTab] = useState('products');
+    const [isFetchPending, setFetchPending] = useState(false);
+    
+    const [products, setProducts] = useState([]);
+    const [orders, setOrders] = useState([]);
+    const [users, setUsers] = useState([]);
+    const [supportTickets, setSupportTickets] = useState([]);
+    const [stats, setStats] = useState({ termekek: 0, bevetel: 0, rendelesek: 0, felhasznalok: 0 });
+    
+    const [replyTexts, setReplyTexts] = useState({});
+    
+    const [showProductModal, setShowProductModal] = useState(false);
+    const [productFormData, setProductFormData] = useState({ id: '', cikkszam: '', nev: '', ar: '', akcios_ar: '', keszlet: '', kategoriaId: '', gyarto: '' });
 
-        async function adminLogin(event) {
-            event.preventDefault();
-            const email = document.getElementById('adminEmail').value;
-            const password = document.getElementById('adminPassword').value;
-            const loginBtn = document.getElementById('loginBtn');
-            const errorDiv = document.getElementById('loginError');
-            
-            loginBtn.disabled = true;
-            loginBtn.textContent = 'Bejelentkezés...';
-            errorDiv.classList.add('hidden');
-            
-            try {
-                const response = await fetch(`${API_URL}/admin?action=login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success && result.user.szerepkor === 'admin') {
-                    adminUser = result.user;
-                    localStorage.setItem('adminUser', JSON.stringify(result.user));
-                    showAdminPanel(result.user);
-                } else {
-                    errorDiv.textContent = result.error || 'Nincs admin jogosultság';
-                    errorDiv.classList.remove('hidden');
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Hálózati hiba történt';
-                errorDiv.classList.remove('hidden');
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Bejelentkezés';
-            }
+    const [showOrderModal, setShowOrderModal] = useState(false);
+    const [selectedOrder, setSelectedOrder] = useState(null);
+
+    useEffect(() => {
+        const user = JSON.parse(localStorage.getItem('adminUser') || 'null');
+        if (user && user.szerepkor === 'admin') {
+            setAdminUser(user);
+            loadAllAdminData();
+        } else {
+            navigate('/');
         }
+    }, []);
 
-        function showAdminPanel(user) {
-            document.getElementById('loginModal').classList.add('hidden');
-            document.getElementById('adminPanel').classList.remove('hidden');
-            document.getElementById('adminName').textContent = user.email;
+    const loadAllAdminData = async () => {
+        setFetchPending(true);
+        try {
+            const [prodRes, orderRes, userRes, supportRes] = await Promise.all([
+                axios.get(`${API_URL}/products`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/orders`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/admin`).catch(e => ({ data: [] })),
+                axios.get(`${API_URL}/chat`).catch(e => ({ data: [] }))
+            ]);
+
+            setProducts(prodRes.data || []);
+            setOrders(orderRes.data || []);
+            setUsers(userRes.data || []);
+            setSupportTickets(supportRes.data || []);
             
-            loadProducts();
-            loadOrders();
-            loadUsers();
-            loadStats();
-            loadSupportTickets();
-        }
-
-        function adminLogout() {
-            localStorage.removeItem('adminUser');
-            adminUser = null;
-            window.location.reload();
-        }
-
-        function showTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.classList.remove('border-red-600', 'text-red-600');
-                btn.classList.add('border-transparent', 'text-gray-600');
+            setStats({
+                termekek: (prodRes.data || []).length,
+                bevetel: (orderRes.data || []).reduce((acc, order) => acc + (order.vegosszeg || order.vegsso_osszeg || 0), 0),
+                rendelesek: (orderRes.data || []).length,
+                felhasznalok: (userRes.data || []).length
             });
-            
-            document.getElementById(tabName + 'Tab').classList.remove('hidden');
-            document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('border-red-600', 'text-red-600');
-            document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.remove('border-transparent', 'text-gray-600');
-            
-            if (tabName === 'support') {
-                loadSupportTickets();
-            }
-        }
 
-        // ========== PRODUCTS ==========
-        async function loadProducts() {
+        } catch (error) {
+            console.error("Hiba az adatok betöltésekor:", error);
+        } finally {
+            setFetchPending(false);
+        }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('adminUser');
+        setAdminUser(null);
+        navigate('/');
+    };
+
+    const deleteProduct = async (id) => {
+        if (!window.confirm('Biztosan törölni szeretné ezt a terméket?')) return;
+        try {
+            const res = await axios.delete(`${API_URL}/products?id=${id}`);
+            if (res.status === 200) {
+                alert('Termék sikeresen törölve!');
+                loadAllAdminData();
+            } else {
+                alert('Hiba törléskor.');
+            }
+        } catch (err) {
+            console.error("Törlési hiba:", err);
+            alert('Szerver hiba történt a törlés során.');
+        }
+    };
+
+    const openProductModal = (product = null) => {
+        if (product) {
+            setProductFormData({
+                id: product.id || product.Id,
+                cikkszam: product.cikkszam || product.Cikkszam || '',
+                nev: product.nev || product.Nev || '',
+                ar: product.ar || product.Ar || '',
+                akcios_ar: product.akcios_ar || product.AkciosAr || '',
+                keszlet: product.keszlet || product.Keszlet || '',
+                kategoriaId: product.kategoriaId || product.KategoriaId || '',
+                gyarto: product.gyarto || product.Gyarto || ''
+            });
+        } else {
+            setProductFormData({ id: '', cikkszam: '', nev: '', ar: '', akcios_ar: '', keszlet: '', kategoriaId: '', gyarto: '' });
+        }
+        setShowProductModal(true);
+    };
+
+    const openOrderModal = async (order) => {
+        try {
+            let tetelek = [];
             try {
-                const response = await fetch(`${API_URL}/admin?action=products`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    const tbody = document.getElementById('productsTableBody');
-                    tbody.innerHTML = result.data.map(p => `
-                        <tr>
-                            <td class="px-6 py-4 text-sm">${p.cikkszam || '-'}</td>
-                            <td class="px-6 py-4 text-sm font-medium">${p.nev}</td>
-                            <td class="px-6 py-4 text-sm">${p.gyarto || '-'}</td>
-                            <td class="px-6 py-4 text-sm">${Number(p.ar).toLocaleString()} Ft</td>
-                            <td class="px-6 py-4 text-sm">${p.keszlet} db</td>
-                            <td class="px-6 py-4 text-sm">
-                                <button onclick="editProduct(${p.id})" class="text-blue-600 hover:text-blue-800 mr-2">Szerkesztés</button>
-                                <button onclick="deleteProduct(${p.id})" class="text-red-600 hover:text-red-800">Törlés</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
+                const tetelek_res = await axios.get(`${API_URL}/orders/${order.id}/items`).catch(() => ({ data: [] }));
+                tetelek = tetelek_res.data || [];
+            } catch (e) {
+                console.log("Nincs rendelés tételek endpoint");
             }
-        }
-
-        function openProductModal() {
-            document.getElementById('modalTitle').textContent = 'Új termék hozzáadása';
-            document.getElementById('productForm').reset();
-            document.getElementById('productId').value = '';
-            document.getElementById('productModal').classList.remove('hidden');
-        }
-
-        function closeProductModal() {
-            document.getElementById('productModal').classList.add('hidden');
-        }
-
-        async function saveProduct(event) {
-            event.preventDefault();
             
-            const productId = document.getElementById('productId').value;
-            const data = {
-                cikkszam: document.getElementById('productCikkszam').value,
-                gyarto: document.getElementById('productGyarto').value,
-                nev: document.getElementById('productNev').value,
-                leiras: document.getElementById('productLeiras').value,
-                kategoria_id: document.getElementById('productKategoria').value,
-                oe_szam: document.getElementById('productOE').value,
-                ar: document.getElementById('productAr').value,
-                akcios_ar: document.getElementById('productAkciosAr').value || null,
-                keszlet: document.getElementById('productKeszlet').value,
-                kep_url: document.getElementById('productKepUrl').value
+            setSelectedOrder({
+                ...order,
+                tetelek: tetelek,
+                vegosszeg: order.vegosszeg || order.Vegosszeg || 0,
+                fizetesiMod: order.fizetesiMod || order.fizetesi_mod || order.FizetesiMod || 'Utánvét'
+            });
+            setShowOrderModal(true);
+        } catch (err) {
+            console.error(err);
+            setSelectedOrder({
+                ...order,
+                tetelek: [],
+                vegosszeg: order.vegosszeg || order.Vegosszeg || 0,
+                fizetesiMod: 'Utánvét'
+            });
+            setShowOrderModal(true);
+        }
+    };
+
+    const closeOrderModal = () => {
+        setSelectedOrder(null);
+        setShowOrderModal(false);
+    };
+
+    const handleSaveProduct = async (e) => {
+        e.preventDefault();
+        try {
+            const productData = {
+                Cikkszam: productFormData.cikkszam,
+                Nev: productFormData.nev,
+                Ar: parseFloat(productFormData.ar) || 0,
+                AkciosAr: productFormData.akcios_ar ? parseFloat(productFormData.akcios_ar) : null,
+                Keszlet: parseInt(productFormData.keszlet) || 0,
+                KategoriaId: productFormData.kategoriaId ? parseInt(productFormData.kategoriaId) : null,
+                Gyarto: productFormData.gyarto || null
             };
-
-            try {
-                const url = productId 
-                    ? `${API_URL}/admin?action=update_product&id=${productId}`
-                    : `${API_URL}/admin?action=add_product`;
-                    
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                const responseText = await response.text();
-                console.log('[v0] saveProduct response status:', response.status);
-                console.log('[v0] saveProduct response body:', responseText);
-                
-                let result;
-                try {
-                    result = JSON.parse(responseText);
-                } catch (e) {
-                    document.getElementById('productFormError').textContent = 'Szerver hiba: ' + responseText.substring(0, 300);
-                    document.getElementById('productFormError').classList.remove('hidden');
-                    return;
-                }
-                
-                if (result.success) {
-                    closeProductModal();
-                    loadProducts();
-                    loadStats();
-                } else {
-                    document.getElementById('productFormError').textContent = result.error || 'Ismeretlen hiba';
-                    document.getElementById('productFormError').classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error('[v0] saveProduct hiba:', error);
-                document.getElementById('productFormError').textContent = 'Halozati hiba: ' + error.message;
-                document.getElementById('productFormError').classList.remove('hidden');
-            }
-        }
-
-        async function deleteProduct(id) {
-            if (!confirm('Biztosan törölni szeretné ezt a terméket?')) return;
             
-            try {
-                const response = await fetch(`${API_URL}/admin?action=delete_product&id=${id}`, {
-                    method: 'DELETE'
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    loadProducts();
-                    loadStats();
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
+            let res;
+            if (productFormData.id) {
+                res = await axios.put(`${API_URL}/products/${productFormData.id}`, productData);
+            } else {
+                res = await axios.post(`${API_URL}/products`, productData);
             }
-        }
 
-        // ========== ORDERS ==========
-        async function loadOrders() {
-            try {
-                const response = await fetch(`${API_URL}/admin?action=orders`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    const orders = result.orders || result.data || [];
-                    const tbody = document.getElementById('ordersTableBody');
-                    if (orders.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Nincsenek rendelesek</td></tr>';
-                        return;
-                    }
-                    tbody.innerHTML = orders.map(o => `
-                        <tr>
-                            <td class="px-6 py-4 text-sm font-medium">${o.rendeles_szam}</td>
-                            <td class="px-6 py-4 text-sm">${o.email || 'Vendég'}</td>
-                            <td class="px-6 py-4 text-sm">${new Date(o.letrehozva).toLocaleString('hu-HU')}</td>
-                            <td class="px-6 py-4 text-sm">${Number(o.vegosszeg).toLocaleString()} Ft</td>
-                            <td class="px-6 py-4 text-sm">
-                                <span class="px-2 py-1 rounded-full text-xs ${getStatusColor(o.statusz)}">${o.statusz}</span>
-                            </td>
-                            <td class="px-6 py-4 text-sm">
-                                <button onclick="viewOrder(${o.id})" class="text-blue-600 hover:text-blue-800">Részletek</button>
-                            </td>
-                        </tr>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
+            if (res.status === 200 || res.status === 201) {
+                alert(productFormData.id ? 'Termék sikeresen frissítve!' : 'Új termék sikeresen hozzáadva!');
+                setShowProductModal(false);
+                loadAllAdminData();
+            } else {
+                alert('Hiba a mentéskor.');
             }
+        } catch (err) {
+            console.error("Mentési hiba:", err);
+            alert('Váratlan hiba történt a termék mentésekor: ' + (err.response?.data?.message || err.message));
         }
+    };
 
-        function getStatusColor(status) {
-            switch(status) {
-                case 'feldolgozas_alatt': return 'bg-yellow-100 text-yellow-800';
-                case 'kiszallitas_alatt': return 'bg-blue-100 text-blue-800';
-                case 'teljesitett': return 'bg-green-100 text-green-800';
-                case 'torolve': return 'bg-red-100 text-red-800';
-                default: return 'bg-gray-100 text-gray-800';
-            }
-        }
+    const handleSendReply = async (ticketId) => {
+        const valasz = replyTexts[ticketId];
+        if (!valasz || !valasz.trim()) return;
 
-        async function viewOrder(id) {
-            document.getElementById('orderModalContent').innerHTML = '<p>Betöltés...</p>';
-            document.getElementById('orderModal').classList.remove('hidden');
-            
-            try {
-                const response = await fetch(`${API_URL}/admin?action=order_details&id=${id}`);
-                const result = await response.json();
-                
-                if (result.success && result.order) {
-                    const o = result.order;
-                    const tetelek = o.tetelek || [];
-                    document.getElementById('orderModalContent').innerHTML = `
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div><span class="text-gray-500 text-sm">Rendelésszám:</span><p class="font-bold">${o.rendeles_szam}</p></div>
-                                <div><span class="text-gray-500 text-sm">Státusz:</span><p><span class="px-2 py-1 rounded-full text-xs ${getStatusColor(o.statusz)}">${o.statusz}</span></p></div>
-                                <div><span class="text-gray-500 text-sm">Név:</span><p>${o.nev}</p></div>
-                                <div><span class="text-gray-500 text-sm">Email:</span><p>${o.email}</p></div>
-                                <div><span class="text-gray-500 text-sm">Telefon:</span><p>${o.telefon}</p></div>
-                                <div><span class="text-gray-500 text-sm">Cím:</span><p>${o.iranyitoszam} ${o.varos}, ${o.utca} ${o.hazszam || ''}</p></div>
-                            </div>
-                            ${o.megjegyzes ? `<div><span class="text-gray-500 text-sm">Megjegyzés:</span><p>${o.megjegyzes}</p></div>` : ''}
-                            <hr>
-                            <h4 class="font-bold">Tételek (${tetelek.length})</h4>
-                            <div class="space-y-2">
-                                ${tetelek.map(t => `
-                                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                                        <div>
-                                            <p class="font-medium">${t.termek_nev || 'Termék'}</p>
-                                            <p class="text-sm text-gray-500">${t.mennyiseg} db x ${Number(t.egysegar).toLocaleString()} Ft</p>
-                                        </div>
-                                        <p class="font-bold">${Number(t.osszeg).toLocaleString()} Ft</p>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <hr>
-                            <div class="flex justify-between"><span>Részösszeg:</span><span>${Number(o.osszeg).toLocaleString()} Ft</span></div>
-                            <div class="flex justify-between"><span>Szállítási díj:</span><span>${Number(o.szallitasi_dij).toLocaleString()} Ft</span></div>
-                            <div class="flex justify-between font-bold text-lg"><span>Végösszeg:</span><span class="text-red-600">${Number(o.vegosszeg).toLocaleString()} Ft</span></div>
-                            <hr>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Státusz módosítása</label>
-                                <select onchange="updateOrderStatus(${o.id}, this.value)" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
-                                    <option value="feldolgozas_alatt" ${o.statusz === 'feldolgozas_alatt' ? 'selected' : ''}>Feldolgozás alatt</option>
-                                    <option value="kiszallitas_alatt" ${o.statusz === 'kiszallitas_alatt' ? 'selected' : ''}>Kiszállítás alatt</option>
-                                    <option value="teljesitett" ${o.statusz === 'teljesitett' ? 'selected' : ''}>Teljesített</option>
-                                    <option value="torolve" ${o.statusz === 'torolve' ? 'selected' : ''}>Törölve</option>
-                                </select>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    document.getElementById('orderModalContent').innerHTML = '<p class="text-red-600">Nem sikerült betölteni a rendelést.</p>';
-                }
-            } catch (error) {
-                document.getElementById('orderModalContent').innerHTML = '<p class="text-red-600">Hálózati hiba történt.</p>';
-            }
-        }
+        const adminId = adminUser?.id || 1;
 
-        async function updateOrderStatus(orderId, statusz) {
-            try {
-                const response = await fetch(`${API_URL}/admin?action=update_order_status`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: orderId, statusz: statusz })
-                });
-                const result = await response.json();
-                if (result.success) {
-                    loadOrders();
-                    loadStats();
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
-            }
-        }
-
-        function closeOrderModal() {
-            document.getElementById('orderModal').classList.add('hidden');
-        }
-
-        // ========== USERS ==========
-        async function loadUsers() {
-            try {
-                const response = await fetch(`${API_URL}/admin?action=users`);
-                const result = await response.json();
-                
-                if (result.success) {
-                    const users = result.users || result.data || [];
-                    const tbody = document.getElementById('usersTableBody');
-                    if (users.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-gray-500">Nincsenek felhasznalok</td></tr>';
-                        return;
-                    }
-                    tbody.innerHTML = users.map(u => `
-                        <tr>
-                            <td class="px-6 py-4 text-sm">${u.id}</td>
-                            <td class="px-6 py-4 text-sm">${u.email}</td>
-                            <td class="px-6 py-4 text-sm">${u.vezeteknev || ''} ${u.keresztnev || ''}</td>
-                            <td class="px-6 py-4 text-sm">
-                                <span class="px-2 py-1 rounded-full text-xs ${u.szerepkor === 'admin' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}">${u.szerepkor}</span>
-                            </td>
-                            <td class="px-6 py-4 text-sm">${new Date(u.letrehozva).toLocaleDateString('hu-HU')}</td>
-                        </tr>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
-            }
-        }
-
-        // ========== SUPPORT ==========
-        async function loadSupportTickets() {
-            try {
-                let url = `${API_URL}/chat?action=get_all_messages`;
-                if (currentSupportFilter !== 'all') {
-                    url += `&statusz=${currentSupportFilter}`;
-                }
-                
-                const response = await fetch(url);
-                const result = await response.json();
-                
-                if (result.success) {
-                    const container = document.getElementById('supportList');
-                    
-                    // Update badge
-                    const newCount = result.data.filter(m => m.statusz === 'uj').length;
-                    const badge = document.getElementById('supportBadge');
-                    if (newCount > 0) {
-                        badge.textContent = newCount;
-                        badge.classList.remove('hidden');
-                    } else {
-                        badge.classList.add('hidden');
-                    }
-                    
-                    if (result.data.length === 0) {
-                        container.innerHTML = `
-                            <div class="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
-                                <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
-                                </svg>
-                                <p>Nincs segítségkérés</p>
-                            </div>
-                        `;
-                        return;
-                    }
-                    
-                    container.innerHTML = result.data.map(msg => `
-                        <div class="bg-white rounded-lg shadow-md p-6">
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 class="font-bold text-gray-900">${msg.user_email || 'Ismeretlen felhasználó'}</h3>
-                                    <p class="text-sm text-gray-500">${msg.vezeteknev || ''} ${msg.keresztnev || ''}</p>
-                                </div>
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2 py-1 rounded-full text-xs ${getTicketStatusColor(msg.statusz)}">${getTicketStatusText(msg.statusz)}</span>
-                                    <span class="text-sm text-gray-500">${formatDate(msg.letrehozva)}</span>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                                <p class="text-gray-700">${escapeHtml(msg.uzenet)}</p>
-                            </div>
-                            
-                            ${msg.admin_valasz ? `
-                                <div class="bg-green-50 rounded-lg p-4 mb-4">
-                                    <p class="text-xs text-green-600 font-medium mb-1">Admin válasz (${formatDate(msg.valaszolva)}):</p>
-                                    <p class="text-gray-700">${escapeHtml(msg.admin_valasz)}</p>
-                                </div>
-                            ` : ''}
-                            
-                            <div class="flex gap-2">
-                                ${msg.statusz !== 'lezart' ? `
-                                    <button onclick="openSupportReplyModal(${msg.id}, '${escapeHtml(msg.uzenet).replace(/'/g, "\\'")}', '${msg.user_email}')" 
-                                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                                        Válaszolás
-                                    </button>
-                                    <button onclick="closeSupportTicket(${msg.id})" 
-                                        class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition">
-                                        Lezárás
-                                    </button>
-                                ` : ''}
-                            </div>
-                        </div>
-                    `).join('');
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
-            }
-        }
-
-        function filterSupport(filter) {
-            currentSupportFilter = filter;
-            
-            document.querySelectorAll('.support-filter-btn').forEach(btn => {
-                btn.classList.remove('ring-2', 'ring-red-600');
+        try {
+            const res = await axios.put(`${API_URL}/chat/${ticketId}`, {
+                adminValasz: valasz,
+                adminId: adminId
             });
-            document.querySelector(`.support-filter-btn[data-filter="${filter}"]`).classList.add('ring-2', 'ring-red-600');
+
+            if (res.status === 200) {
+                alert('Válasz sikeresen elküldve!');
+                setReplyTexts({ ...replyTexts, [ticketId]: '' });
+                loadAllAdminData();
+            } else {
+                alert('Hiba a válaszadáskor.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Szerver hiba történt a válaszadás során.');
+        }
+    };
+
+    const handleStatusChange = async (orderId, newStatus) => {
+        try {
+            const res = await axios.patch(`${API_URL}/orders/${orderId}/status`, {
+                ujStatusz: newStatus
+            });
             
-            loadSupportTickets();
-        }
-
-        function getTicketStatusColor(status) {
-            switch(status) {
-                case 'uj': return 'bg-red-100 text-red-800';
-                case 'folyamatban': return 'bg-yellow-100 text-yellow-800';
-                case 'lezart': return 'bg-green-100 text-green-800';
-                default: return 'bg-gray-100 text-gray-800';
+            if (res.status === 200) {
+                loadAllAdminData(); 
             }
+        } catch (err) {
+            console.error("Hiba a státusz frissítésekor:", err);
+            alert('Hiba történt a státusz frissítésekor.');
         }
+    };
 
-        function getTicketStatusText(status) {
-            switch(status) {
-                case 'uj': return 'Új';
-                case 'folyamatban': return 'Folyamatban';
-                case 'lezart': return 'Lezárt';
-                default: return status;
-            }
-        }
+    const getStatusColor = (status) => {
+        const s = status || 'fuggoben';
+        const colors = {
+            'fuggoben': 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300',
+            'teljesitve': 'bg-green-50 text-green-700 border-green-200 hover:border-green-300',
+            'torolve': 'bg-red-50 text-red-700 border-red-200 hover:border-red-300'
+        };
+        return colors[s] || colors['fuggoben'];
+    };
 
-        function openSupportReplyModal(messageId, originalMessage, userEmail) {
-            document.getElementById('supportMessageId').value = messageId;
-            document.getElementById('supportOriginalMessage').innerHTML = `
-                <p class="text-xs text-gray-500 mb-1">Üzenet (${userEmail}):</p>
-                <p class="text-gray-700">${originalMessage}</p>
-            `;
-            document.getElementById('supportReplyText').value = '';
-            document.getElementById('supportReplyModal').classList.remove('hidden');
-        }
+    const handleInputChangeModal = (e) => {
+        setProductFormData({ ...productFormData, [e.target.name]: e.target.value });
+    };
 
-        function closeSupportReplyModal() {
-            document.getElementById('supportReplyModal').classList.add('hidden');
-        }
+    if (!adminUser) return null;
 
-        async function sendSupportReply(event) {
-            event.preventDefault();
-            
-            const messageId = document.getElementById('supportMessageId').value;
-            const valasz = document.getElementById('supportReplyText').value;
-            
-            if (!adminUser || !adminUser.id) {
-                alert('Nincs bejelentkezve admin!');
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_URL}/chat?action=reply`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message_id: messageId,
-                        admin_id: adminUser.id,
-                        valasz: valasz
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    closeSupportReplyModal();
-                    loadSupportTickets();
-                } else {
-                    alert('Hiba: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
-                alert('Hálózati hiba történt');
-            }
-        }
-
-        async function closeSupportTicket(messageId) {
-            if (!confirm('Biztosan lezárja ezt a segítségkérést?')) return;
-            
-            try {
-                const response = await fetch(`${API_URL}/chat?action=close`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message_id: messageId })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    loadSupportTickets();
-                } else {
-                    alert('Hiba: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
-            }
-        }
-
-        // ========== STATS ==========
-        async function loadStats() {
-            try {
-                const response = await fetch(`${API_URL}/admin?action=stats`);
-                const result = await response.json();
-                
-                if (result.success) {
-                const stats = result.stats || result.data || {};
-                document.getElementById('totalProducts').textContent = stats.termekek || stats.products || 0;
-                document.getElementById('totalRevenue').textContent = Number(stats.bevetel || stats.revenue || 0).toLocaleString() + ' Ft';
-                document.getElementById('totalOrders').textContent = stats.rendelesek || stats.orders || 0;
-                document.getElementById('totalUsers').textContent = stats.felhasznalok || stats.users || 0;
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
-            }
-        }
-
-        // ========== EDIT PRODUCT ==========
-        async function editProduct(id) {
-            try {
-                const response = await fetch(`${API_URL}/admin?action=get_product&id=${id}`);
-                const result = await response.json();
-                
-                if (result.success && result.product) {
-                    const p = result.product;
-                    document.getElementById('modalTitle').textContent = 'Termék szerkesztése';
-                    document.getElementById('productId').value = p.id;
-                    document.getElementById('productCikkszam').value = p.cikkszam || '';
-                    document.getElementById('productGyarto').value = p.gyarto || '';
-                    document.getElementById('productNev').value = p.nev || '';
-                    document.getElementById('productLeiras').value = p.leiras || '';
-                    document.getElementById('productKategoria').value = p.kategoria_id || '';
-                    document.getElementById('productOE').value = p.oe_szam || '';
-                    document.getElementById('productAr').value = p.ar || '';
-                    document.getElementById('productAkciosAr').value = p.akcios_ar || '';
-                    document.getElementById('productKeszlet').value = p.keszlet || '';
-                    document.getElementById('productKepUrl').value = p.kep_url || '';
-                    document.getElementById('productModal').classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error('Hiba:', error);
-                alert('Nem sikerult betolteni a terméket.');
-            }
-        }
-
-        // ========== HELPERS ==========
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            return new Date(dateStr).toLocaleString('hu-HU');
-        }
-  return (
-    <div>
-        {/* <!-- Admin Login Modal --> */}
-    <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-            <div class="text-center mb-6">
-                <div class="bg-red-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
-                    </svg>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-900">Admin Bejelentkezés</h2>
-                <p class="text-gray-600 mt-2">Adja meg az admin hitelesítő adatait</p>
-            </div>
-            <form id="adminLoginForm" onsubmit="adminLogin(event)">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email cím</label>
-                    <input type="email" id="adminEmail" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600" placeholder="admin@gmail.com"/>
-                </div>
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Jelszó</label>
-                    <input type="password" id="adminPassword" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600" placeholder="admin"/>
-                </div>
-                <div id="loginError" class="hidden mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm"></div>
-                <button type="submit" id="loginBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-bold transition">
-                    Bejelentkezés
-                </button>
-            </form>
-            <div class="mt-4 text-center">
-                <a href="index.html" class="text-gray-600 hover:text-gray-900 text-sm">Vissza a főoldalra</a>
-            </div>
-        </div>
-    </div>
-
-    {/* <!-- Admin Panel --> */}
-    <div id="adminPanel" class="hidden">
-        <header class="bg-gray-900 text-white shadow-lg">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <a href="index.html" class="text-2xl font-bold text-red-500">AutoParts Pro</a>
-                        <span class="bg-red-600 text-white text-xs px-2 py-1 rounded">ADMIN</span>
-                    </div>
-                    <div class="flex items-center gap-2 sm:gap-4">
-                        <span id="adminName" class="text-gray-300 text-sm hidden sm:inline"></span>
-                        <button onclick="toggleDarkMode()" class="dark-mode-toggle p-2 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800 transition-colors" title="Sotet/Vilagos mod">
-                            <svg class="dm-sun w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
-                            </svg>
-                            <svg class="dm-moon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
-                            </svg>
+    return (
+        <div className="bg-gray-50 min-h-screen text-gray-900">
+            <nav className="bg-white border-b sticky top-0 z-10 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4 flex gap-8 overflow-x-auto">
+                    {[
+                        { id: 'products', label: 'Termékek' },
+                        { id: 'orders', label: 'Rendelések' },
+                        { id: 'users', label: 'Felhasználók' },
+                        { id: 'support', label: 'Ügyfélszolgálat' },
+                        { id: 'stats', label: 'Statisztika' }
+                    ].map((tab) => (
+                        <button 
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`py-4 px-2 border-b-2 font-bold transition whitespace-nowrap ${activeTab === tab.id ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-900'}`}
+                        >
+                            {tab.label}
                         </button>
-                        <button onclick="adminLogout()" class="bg-red-600 hover:bg-red-700 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition">
-                            Kilep
-                        </button>
+                    ))}
+                </div>
+            </nav>
+
+            <main className="max-w-7xl mx-auto p-4 sm:p-8">
+                {isFetchPending ? (
+                    <div className="flex justify-center p-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
                     </div>
-                </div>
-            </div>
-        </header>
+                ) : (
+                    <>
+                        {activeTab === 'products' && (
+                            <section>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-black">Termékek kezelése</h2>
+                                    <button onClick={() => openProductModal()} className="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-xl font-bold shadow-md transition-all active:scale-95 flex items-center gap-2">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                                        Új termék
+                                    </button>
+                                </div>
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wider">
+                                            <tr>
+                                                <th className="p-4 font-bold">Cikkszám</th>
+                                                <th className="p-4 font-bold">Név</th>
+                                                <th className="p-4 font-bold">Gyártó</th>
+                                                <th className="p-4 font-bold">Ár</th>
+                                                <th className="p-4 font-bold">Készlet</th>
+                                                <th className="p-4 font-bold text-right">Műveletek</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 text-sm">
+                                            {products.map(p => (
+                                                <tr key={p.id || p.Id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="p-4 font-mono text-gray-500">{p.cikkszam || p.Cikkszam}</td>
+                                                    <td className="p-4 font-bold text-gray-900">{p.nev || p.Nev}</td>
+                                                    <td className="p-4 text-gray-600">{p.gyarto || p.Gyarto || '-'}</td>
+                                                    <td className="p-4 font-bold text-red-600">{Number(p.ar || p.Ar).toLocaleString()} Ft</td>
+                                                    <td className="p-4">
+                                                        <span className={`px-2 py-1 rounded-md font-bold text-xs ${(p.keszlet || p.Keszlet) > 5 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                            {p.keszlet || p.Keszlet} db
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-4 text-right">
+                                                        <button onClick={() => openProductModal(p)} className="text-blue-600 hover:text-blue-800 font-bold mr-4 transition-colors">Szerkeszt</button>
+                                                        <button onClick={() => deleteProduct(p.id || p.Id)} className="text-gray-400 hover:text-red-600 font-bold transition-colors">Törlés</button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                        )}
 
-        <nav class="bg-white border-b overflow-x-auto">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex gap-2 sm:gap-8 min-w-max">
-                    <button onclick="showTab('products')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-red-600 text-red-600 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="products">Termekek</button>
-                    <button onclick="showTab('orders')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="orders">Rendelesek</button>
-                    <button onclick="showTab('users')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="users">Felhasznalok</button>
-                    <button onclick="showTab('support')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="support">
-                        Segitseg
-                        <span id="supportBadge" class="hidden ml-1 bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">0</span>
-                    </button>
-                    <button onclick="showTab('stats')" class="tab-btn py-3 sm:py-4 px-2 border-b-2 border-transparent text-gray-600 hover:text-gray-900 font-medium text-sm sm:text-base whitespace-nowrap" data-tab="stats">Statisztika</button>
-                </div>
-            </div>
-        </nav>
+                        {activeTab === 'orders' && (
+                            <section>
+                                <h2 className="text-2xl font-black mb-6">Rendelések áttekintése</h2>
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wider">
+                                            <tr>
+                                                <th className="p-4 font-bold">Rendelésszám</th>
+                                                <th className="p-4 font-bold">Vásárló</th>
+                                                <th className="p-4 font-bold">Dátum</th>
+                                                <th className="p-4 font-bold">Összeg</th>
+                                                <th className="p-4 font-bold">Státusz</th>
+                                                <th className="p-4 font-bold text-center">Műveletek</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 text-sm">
+                                            {orders.map(o => (
+                                                <tr key={o.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="p-4 font-bold text-gray-900">{o.rendeles_szam || o.id}</td>
+                                                    <td className="p-4 text-gray-600">{o.email || o.nev || 'Vendég'}</td>
+                                                    <td className="p-4 text-gray-500">{new Date(o.letrehozva || o.datum).toLocaleDateString('hu-HU')}</td>
+                                                    <td className="p-4 font-bold">{Number(o.vegosszeg || o.vegsso_osszeg).toLocaleString()} Ft</td>
+                                                    <td className="p-4">
+                                                        <select
+                                                            value={o.statusz || 'fuggoben'}
+                                                            onChange={(e) => handleStatusChange(o.id, e.target.value)}
+                                                            className={`px-3 py-1.5 pr-8 rounded-xl text-[11px] font-black uppercase tracking-wider border-2 outline-none cursor-pointer transition-all focus:border-red-500 focus:ring-4 focus:ring-red-100 shadow-sm appearance-none ${getStatusColor(o.statusz || 'fuggoben')}`}
+                                                            style={{
+                                                                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                                                                backgroundRepeat: 'no-repeat',
+                                                                backgroundPosition: 'right 0.5rem center',
+                                                                backgroundSize: '1em 1em'
+                                                            }}
+                                                        >
+                                                            <option value="fuggoben" className="text-gray-900 bg-white font-bold">Függőben</option>
+                                                            <option value="teljesitve" className="text-green-700 bg-white font-bold">Teljesítve</option>
+                                                            <option value="torolve" className="text-red-700 bg-white font-bold">Törölve</option>
+                                                        </select>
+                                                    </td>
+                                                    <td className="p-4 text-center">
+                                                        <button 
+                                                            onClick={() => openOrderModal(o)}
+                                                            className="bg-gray-900 text-white text-xs font-bold px-4 py-2 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm"
+                                                        >
+                                                            Részletek
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {orders.length === 0 && (
+                                                <tr><td colSpan="6" className="p-8 text-center text-gray-400">Jelenleg nincs megjeleníthető rendelés.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                        )}
 
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {/* <!-- Products Tab --> */}
-            <div id="productsTab" class="tab-content">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Termékek kezelése</h2>
-                    <button onclick="openProductModal()" class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition flex items-center gap-2">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Új termék
-                    </button>
-                </div>
-                <div class="bg-white rounded-lg shadow-md overflow-x-auto">
-                    <table class="w-full min-w-[640px]">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cikkszam</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nev</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gyarto</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ar</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Keszlet</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Muveletek</th>
-                            </tr>
-                        </thead>
-                        <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-            </div>
+                        {activeTab === 'users' && (
+                            <section>
+                                <h2 className="text-2xl font-black mb-6">Regisztrált Felhasználók</h2>
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-x-auto">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-gray-50 border-b border-gray-200 text-gray-500 text-xs uppercase tracking-wider">
+                                            <tr>
+                                                <th className="p-4 font-bold">ID</th>
+                                                <th className="p-4 font-bold">Név</th>
+                                                <th className="p-4 font-bold">Email</th>
+                                                <th className="p-4 font-bold">Jogosultság</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 text-sm">
+                                            {users.map(u => (
+                                                <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                                                    <td className="p-4 text-gray-400 font-mono">#{u.id}</td>
+                                                    <td className="p-4 font-bold text-gray-900">{u.vezeteknev} {u.keresztnev}</td>
+                                                    <td className="p-4 text-gray-600">{u.email}</td>
+                                                    <td className="p-4">
+                                                        <span className={`px-2 py-1 rounded text-xs font-black uppercase ${u.szerepkor === 'admin' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                            {u.szerepkor || 'Vásárló'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {users.length === 0 && (
+                                                <tr><td colSpan="4" className="p-8 text-center text-gray-400">Jelenleg nincsenek regisztrált felhasználók.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </section>
+                        )}
 
-            {/* <!-- Orders Tab --> */}
-            <div id="ordersTab" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6">Rendelések</h2>
-                <div class="bg-white rounded-lg shadow-md overflow-x-auto">
-                    <table class="w-full min-w-[640px]">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rendelesszam</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vasarlo</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Datum</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Osszeg</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Statusz</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Muveletek</th>
-                            </tr>
-                        </thead>
-                        <tbody id="ordersTableBody" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-            </div>
+                        {activeTab === 'support' && (
+                            <section>
+                                <h2 className="text-2xl font-black mb-6">Ügyfélszolgálati Üzenetek</h2>
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                                    <div className="divide-y divide-gray-100">
+                                        {supportTickets.length > 0 ? supportTickets.map(ticket => (
+                                            <div key={ticket.id} className="p-6 hover:bg-gray-50 transition-colors">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 font-bold text-xl">
+                                                            {ticket.user?.vezeteknev ? ticket.user.vezeteknev.charAt(0).toUpperCase() : '?'}
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="font-bold text-gray-900 text-lg">
+                                                                {ticket.user?.vezeteknev ? `${ticket.user.vezeteknev} ${ticket.user.keresztnev}` : `Felhasználó #${ticket.userId}`}
+                                                            </h4>
+                                                            <p className="text-sm text-gray-500">{ticket.user?.email || 'Nincs email megadva'}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right flex flex-col items-end gap-2">
+                                                        <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">
+                                                            {new Date(ticket.letrehozva || Date.now()).toLocaleString('hu-HU')}
+                                                        </span>
+                                                        <span className={`px-2 py-1 text-[10px] font-black uppercase rounded shadow-sm ${ticket.statusz === 'megvalaszolva' || ticket.adminValasz ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                            {ticket.statusz === 'megvalaszolva' || ticket.adminValasz ? 'Megválaszolva' : 'Várakozik'}      
+                                                        </span>
+                                                    </div>
+                                                </div>
 
-            {/* <!-- Users Tab --> */}
-            <div id="usersTab" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6">Felhasználók</h2>
-                <div class="bg-white rounded-lg shadow-md overflow-x-auto">
-                    <table class="w-full min-w-[500px]">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nev</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Szerepkor</th>
-                                <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Regisztracio</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-            </div>
+                                                <div className="bg-gray-100 p-4 rounded-xl border border-gray-200 text-gray-800 text-sm mb-4 relative">        
+                                                    <p className="font-bold mb-1 text-xs text-gray-400 uppercase tracking-wider">Üzenet:</p>
+                                                    <p className="whitespace-pre-wrap">{ticket.uzenet}</p>
+                                                </div>
 
-            {/* <!-- Új Support Tab hozzáadva --> */}
-            <div id="supportTab" class="tab-content hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Segítségkérések</h2>
-                    <div class="flex gap-2">
-                        <button onclick="filterSupport('all')" class="support-filter-btn bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg text-sm font-medium" data-filter="all">Mind</button>
-                        <button onclick="filterSupport('uj')" class="support-filter-btn bg-red-100 text-red-700 hover:bg-red-200 px-4 py-2 rounded-lg text-sm font-medium" data-filter="uj">Új</button>
-                        <button onclick="filterSupport('folyamatban')" class="support-filter-btn bg-yellow-100 text-yellow-700 hover:bg-yellow-200 px-4 py-2 rounded-lg text-sm font-medium" data-filter="folyamatban">Folyamatban</button>
-                        <button onclick="filterSupport('lezart')" class="support-filter-btn bg-green-100 text-green-700 hover:bg-green-200 px-4 py-2 rounded-lg text-sm font-medium" data-filter="lezart">Lezárt</button>
-                    </div>
-                </div>
-                <div id="supportList" class="space-y-4">
-                    {/* <!-- Support tickets will be loaded here --> */}
-                </div>
-            </div>
+                                                {ticket.adminValasz ? (
+                                                    <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-900 text-sm ml-8 relative shadow-inner">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <p className="font-black text-xs text-red-700 uppercase tracking-wider">Válaszod:</p>
+                                                        </div>
+                                                        <p className="whitespace-pre-wrap">{ticket.adminValasz}</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="ml-8 mt-2">
+                                                        <textarea 
+                                                            className="w-full p-4 bg-white border border-gray-300 rounded-xl outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all text-sm resize-none shadow-sm"
+                                                            rows="3"
+                                                            placeholder="Írd ide a válaszod az ügyfélnek..."
+                                                            value={replyTexts[ticket.id] || ''}
+                                                            onChange={(e) => setReplyTexts({...replyTexts, [ticket.id]: e.target.value})}
+                                                        ></textarea>
+                                                        <div className="flex justify-end mt-3">
+                                                            <button 
+                                                                onClick={() => handleSendReply(ticket.id)}
+                                                                disabled={!replyTexts[ticket.id] || !replyTexts[ticket.id].trim()}
+                                                                className="bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-2 rounded-xl font-bold text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
+                                                            >
+                                                                Válasz küldése
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )) : (
+                                            <div className="p-16 text-center">
+                                                <p className="text-gray-500 font-bold text-lg">Nincsenek beérkezett üzenetek.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </section>
+                        )}
 
-            {/* <!-- Stats Tab --> */}
-            <div id="statsTab" class="tab-content hidden">
-                <h2 class="text-2xl font-bold mb-6">Statisztikák</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="flex items-center">
-                            <div class="bg-blue-100 p-3 rounded-full">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        {activeTab === 'stats' && (
+                            <section>
+                                <h2 className="text-2xl font-black mb-6">Műszerfal Statisztikák</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                    <StatCard title="Összes termék" value={stats.termekek || 0} icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                    <StatCard title="Teljes bevétel" value={`${Number(stats.bevetel || 0).toLocaleString()} Ft`} icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    <StatCard title="Leadott rendelések" value={stats.rendelesek || 0} icon="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                    <StatCard title="Regisztrált userek" value={stats.felhasznalok || 0} icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </div>
+                            </section>
+                        )}
+                    </>
+                )}
+            </main>
+
+            {/* Termék Modal */}
+            {showProductModal && (
+                <div className="fixed inset-0 bg-gray-900 bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl">
+                        <div className="bg-gray-900 p-6 flex justify-between items-center text-white">
+                            <h3 className="font-black text-xl">{productFormData.id ? 'Termék szerkesztése' : 'Új termék hozzáadása'}</h3>
+                            <button onClick={() => setShowProductModal(false)} className="text-gray-400 hover:text-white transition-colors bg-gray-800 rounded-full w-8 h-8 flex items-center justify-center">
+                                &times;
+                            </button>
+                        </div>
+                        <form onSubmit={handleSaveProduct} className="p-8 space-y-5">
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Cikkszám</label>
+                                <input required type="text" name="cikkszam" value={productFormData.cikkszam} onChange={handleInputChangeModal} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="Pl: BMW-3E90-FB01" />
                             </div>
-                            <div class="ml-4">
-                                <p class="text-sm text-gray-500">Összes termék</p>
-                                <p id="totalProducts" class="text-2xl font-bold">0</p>
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Termék Név</label>
+                                <input required type="text" name="nev" value={productFormData.nev} onChange={handleInputChangeModal} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="Pl: Fékbetét garnitúra" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Ár (HUF)</label>
+                                    <input required type="number" name="ar" value={productFormData.ar} onChange={handleInputChangeModal} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="0" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Akciós Ár (HUF)</label>
+                                    <input type="number" name="akcios_ar" value={productFormData.akcios_ar} onChange={handleInputChangeModal} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="0 (nem kötelező)" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Készlet (DB)</label>
+                                    <input required type="number" name="keszlet" value={productFormData.keszlet} onChange={handleInputChangeModal} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="0" />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Kategória ID</label>
+                                    <input type="number" name="kategoriaId" value={productFormData.kategoriaId} onChange={handleInputChangeModal} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="1-15" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">Gyártó</label>
+                                <input type="text" name="gyarto" value={productFormData.gyarto} onChange={handleInputChangeModal} className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-red-500 focus:bg-white transition-colors" placeholder="Pl: TRW, Brembo" />
+                            </div>
+                            <div className="pt-4">
+                                <button type="submit" className="w-full bg-red-600 hover:bg-red-700 text-white font-bold p-4 rounded-xl shadow-md transition-all">
+                                    {productFormData.id ? 'Változtatások mentése' : 'Termék hozzáadása'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Rendelés Részletek Modal */}
+            {showOrderModal && selectedOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+                        <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
+                            <div>
+                                <h3 className="text-2xl font-black">Rendelés #{selectedOrder.rendeles_szam || selectedOrder.id}</h3>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Leadva: {new Date(selectedOrder.letrehozva || selectedOrder.datum).toLocaleString('hu-HU')}
+                                </p>
+                            </div>
+                            <button onClick={closeOrderModal} className="text-gray-400 hover:text-red-600 transition-colors p-2 bg-white rounded-xl shadow-sm border border-gray-200">
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto custom-scrollbar">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Vásárló adatai</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <p><span className="font-bold text-gray-700">Név:</span> {selectedOrder.nev}</p>
+                                        <p><span className="font-bold text-gray-700">Email:</span> <a href={`mailto:${selectedOrder.email}`} className="text-red-600 hover:underline">{selectedOrder.email}</a></p>
+                                        <p><span className="font-bold text-gray-700">Telefon:</span> {selectedOrder.telefon || '-'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Szállítás & Fizetés</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <p><span className="font-bold text-gray-700">Cím:</span> {selectedOrder.iranyitoszam} {selectedOrder.varos}, {selectedOrder.utca} {selectedOrder.hazszam || ''}</p>
+                                        <p><span className="font-bold text-gray-700">Fizetési mód:</span> <span className="uppercase font-bold text-red-600">{selectedOrder.fizetesiMod || selectedOrder.fizetesi_mod || 'Utánvét'}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {selectedOrder.megjegyzes && (
+                                <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-2xl text-sm">
+                                    <span className="font-bold text-yellow-800 block mb-1">Vásárló megjegyzése:</span>
+                                    <p className="text-yellow-900">{selectedOrder.megjegyzes}</p>
+                                </div>
+                            )}
+
+                            <div>
+                                <h4 className="text-lg font-black mb-4 border-b border-gray-200 pb-2">Megrendelt termékek ({(selectedOrder.tetelek || []).length})</h4>
+                                <div className="space-y-3">
+                                    {selectedOrder.tetelek && selectedOrder.tetelek.length > 0 ? (
+                                        selectedOrder.tetelek.map((item, index) => (
+                                            <div key={index} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-xl transition-colors border border-transparent hover:border-gray-100">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="bg-gray-200 text-gray-700 font-bold w-8 h-8 rounded-lg flex items-center justify-center text-sm">{item.mennyiseg}x</span>
+                                                    <div>
+                                                        <p className="font-bold text-sm">{item.termekNev || item.TermekNev || `Termék #${item.alkatreszId || item.olajId}`}</p>
+                                                        <p className="text-xs text-gray-500">{Number(item.egysegar || item.Egysegar).toLocaleString()} Ft/db</p>
+                                                    </div>
+                                                </div>
+                                                <span className="font-black">{Number(item.osszeg || item.Osszeg).toLocaleString()} Ft</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-gray-500 italic">Nincsenek tételadatok ehhez a rendeléshez.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="flex items-center">
-                            <div class="bg-green-100 p-3 rounded-full">
-                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm text-gray-500">Összes bevétel</p>
-                                <p id="totalRevenue" class="text-2xl font-bold">0 Ft</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="flex items-center">
-                            <div class="bg-yellow-100 p-3 rounded-full">
-                                <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm text-gray-500">Rendelések</p>
-                                <p id="totalOrders" class="text-2xl font-bold">0</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="flex items-center">
-                            <div class="bg-purple-100 p-3 rounded-full">
-                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm text-gray-500">Felhasználók</p>
-                                <p id="totalUsers" class="text-2xl font-bold">0</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
 
-    {/* <!-- Product Modal --> */}
-    <div id="productModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b">
-                <div class="flex justify-between items-center">
-                    <h3 id="modalTitle" class="text-xl font-bold">Új termék hozzáadása</h3>
-                    <button onclick="closeProductModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-            </div>
-            <form id="productForm" onsubmit="saveProduct(event)" class="p-6">
-                <input type="hidden" id="productId"/>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Cikkszám *</label>
-                        <input type="text" id="productCikkszam" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Gyártó</label>
-                        <input type="text" id="productGyarto" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Termék neve *</label>
-                        <input type="text" id="productNev" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Leírás</label>
-                        <textarea id="productLeiras" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Kategória</label>
-                        <select id="productKategoria" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600">
-                            <option value="">Válasszon kategóriát</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">OE szám</label>
-                        <input type="text" id="productOE" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Ár (Ft) *</label>
-                        <input type="number" id="productAr" required min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Akciós ár (Ft)</label>
-                        <input type="number" id="productAkciosAr" min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Készlet (db) *</label>
-                        <input type="number" id="productKeszlet" required min="0" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Kép URL</label>
-                        <input type="text" id="productKepUrl" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
+                        <div className="p-6 bg-gray-900 text-white flex justify-between items-center">
+                            <span className="font-bold text-gray-400 uppercase tracking-wider text-sm">Végösszeg</span>
+                            <span className="text-2xl font-black text-white">{Number(selectedOrder.vegosszeg || selectedOrder.vegsso_osszeg).toLocaleString()} Ft</span>
+                        </div>
                     </div>
                 </div>
-                <div id="productFormError" class="hidden mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm"></div>
-                <div class="flex justify-end gap-4 mt-6">
-                    <button type="button" onclick="closeProductModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Mégse</button>
-                    <button type="submit" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">Mentés</button>
-                </div>
-            </form>
+            )}
         </div>
-    </div>
+    );
+};
 
-    {/* <!-- Order Details Modal --> */}
-    <div id="orderModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <div class="p-6 border-b">
-                <div class="flex justify-between items-center">
-                    <h3 id="orderModalTitle" class="text-xl font-bold">Rendelés részletei</h3>
-                    <button onclick="closeOrderModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-            </div>
-            <div id="orderModalContent" class="p-6"></div>
-        </div>
-    </div>
-
-    {/* <!-- Support Reply Modal hozzáadva --> */}
-    <div id="supportReplyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
-            <div class="p-6 border-b">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-xl font-bold">Válasz küldése</h3>
-                    <button onclick="closeSupportReplyModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-            </div>
-            <div class="p-6">
-                <div id="supportOriginalMessage" class="bg-gray-100 rounded-lg p-4 mb-4">
-                    {/* <!-- Original message will be shown here --> */}
-                </div>
-                <form id="supportReplyForm" onsubmit="sendSupportReply(event)">
-                    <input type="hidden" id="supportMessageId"/>
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Válasz</label>
-                        <textarea id="supportReplyText" rows="4" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600" placeholder="Írja be a válaszát..."></textarea>
-                    </div>
-                    <div class="flex justify-end gap-4">
-                        <button type="button" onclick="closeSupportReplyModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Mégse</button>
-                        <button type="submit" class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">Küldés</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div></div>
-  )
-}
+export default Admin;
