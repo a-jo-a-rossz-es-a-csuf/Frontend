@@ -1,154 +1,208 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-export default function Folyadekok() {
-     const API_URL = 'http://localhost:5000/api';
-        let searchTerm = '';
+const Folyadekok = () => {
+    const API_URL = 'http://localhost:5000/api';
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    
+    // Szűrők állapotai
+    const [categories, setCategories] = useState([]);
+    const [brands, setBrands] = useState([]);
+    const [viscosities, setViscosities] = useState([]);
+    
+    // Aktuális választások
+    const [selectedCat, setSelectedCat] = useState('');
+    const [selectedBrand, setSelectedBrand] = useState('');
+    const [selectedVis, setSelectedVis] = useState('');
 
-        function getUserId() {
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            return user ? user.id : null;
-        }
+    const [user, setUser] = useState(null);
 
-        document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
-            updateCartCount();
-            loadProducts();
-        });
+    useEffect(() => {
+        const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
+        setUser(savedUser);
+        loadInitialData();
+    }, []);
 
-        function checkLoginStatus() {
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            const loginLink = document.getElementById('loginLink');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const userInfo = document.getElementById('userInfo');
-            const adminLink = document.getElementById('adminLink');
-            
-            if (user) {
-                userInfo.textContent = user.email;
-                userInfo.classList.remove('hidden');
-                loginLink.classList.add('hidden');
-                logoutBtn.classList.remove('hidden');
-                if (user.szerepkor === 'admin') adminLink.classList.remove('hidden');
-            } else {
-                loginLink.classList.remove('hidden');
-                logoutBtn.classList.add('hidden');
-                userInfo.classList.add('hidden');
-            }
-        }
+    // Szűrők és alaplista betöltése
+    const loadInitialData = async () => {
+        setLoading(true);
+        try {
+            const prodRes = await axios.get(`${API_URL}/olajok`);
 
-        function logout() {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            window.location.reload();
-        }
-
-        async function updateCartCount() {
-            const userId = getUserId();
-            const cartCount = document.getElementById('cart-count');
-            
-            if (!userId) {
-                cartCount.textContent = '0';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_URL}/cart?action=get&user_id=${userId}`);
-                const data = await response.json();
-                if (data.success && data.items) {
-                    let count = 0;
-                    data.items.forEach(item => count += parseInt(item.mennyiseg));
-                    cartCount.textContent = count;
-                }
-            } catch (error) {
-                cartCount.textContent = '0';
-            }
-        }
-
-        async function loadProducts() {
-            const loading = document.getElementById('loading');
-            const grid = document.getElementById('products-grid');
-            
-            try {
-                const response = await fetch(`${API_URL}/olajok?action=list`);
-                const result = await response.json();
-                loading.classList.add('hidden');
+            if (Array.isArray(prodRes.data)) {
+                setProducts(prodRes.data);
                 
-                if (result.success && result.data) {
-                    let products = result.data;
-                    if (searchTerm) products = products.filter(p => p.nev.toLowerCase().includes(searchTerm.toLowerCase()));
-                    
-                    grid.innerHTML = products.map(p => `
-                        <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition">
-                            <div class="w-full h-40 bg-gradient-to-br from-amber-100 to-amber-200 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
-                                ${p.kep_url
-                                    ? `<img src="${p.kep_url}" alt="${p.nev}" class="h-full w-full object-cover rounded-lg">`
-                                    : `<svg class="w-16 h-16 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                                    </svg>`}
+                // Egyedi kategóriák, márkák, viszkozitások kinyerése client-side-on
+                const cats = [...new Set(prodRes.data.map(p => p.nev || p.Nev).map(n => n.split('-')[0].trim()))];
+                const marks = [...new Set(prodRes.data.map(p => p.gyarto || p.Gyarto).filter(Boolean))];
+                const vis = [...new Set(prodRes.data.map(p => p.viszkozitas || p.Viszkozitas).filter(Boolean))];
+                
+                setCategories(cats.filter(c => c));
+                setBrands(marks);
+                setViscosities(vis);
+            }
+        } catch (err) {
+            console.error("Hiba a betöltéskor:", err);
+            setError("Nem sikerült kapcsolódni a szerverhez.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Kép URL-t generál a termékből
+    const getImageUrl = (product) => {
+        const nev = String(product.nev || product.Nev || '').toLowerCase();
+        const path = product.kepUrl || product.KepUrl || product.kep_url;
+
+        if (nev.includes('hutofolyadek') || nev.includes('hűtőfolyadék')) return '/images/parts/hutofolyadek.jpg';
+        if (nev.includes('fekfolyadek') || nev.includes('fékfolyadék')) return '/images/parts/fekfolyadek.jpg';
+        if (!path) return "https://placehold.co/400x300?text=Nincs+Kép";
+        
+        const fileName = String(path).trim().split(/[/\\]/).pop();
+        return `/images/parts/${fileName}`;
+    };
+
+    // JAVÍTOTT KOSÁRBA TÉTEL (A backend CartRequestDto-hoz igazítva)
+    const addToCart = async (productId) => {
+        if (!user || !user.id) {
+            return alert('A vásárláshoz be kell jelentkeznie!');
+        }
+
+        try {
+            // Pontosan azokat a mezőket küldjük, amiket a C# DTO vár
+            const payload = {
+                userId: parseInt(user.id),
+                olajId: parseInt(productId),
+                alkatreszId: null,
+                mennyiseg: 1
+            };
+
+            const res = await axios.post(`${API_URL}/cart`, payload);
+            
+            if (res.status === 200 || res.status === 201) {
+                alert('Termék a kosárba került!');
+                window.dispatchEvent(new Event('cartUpdated'));
+            } else {
+                alert('Hiba történt a kosárba tételkor.');
+            }
+        } catch (err) {
+            console.error("Hiba kosárba rakáskor:", err.response?.data || err);
+            alert('Szerver hiba történt. Ellenőrizd a konzolt!');
+        }
+    };
+
+    if (loading) return <div className="p-20 text-center font-bold text-gray-500">Folyadékok betöltése...</div>;
+
+    // Client-side szűrés
+    const filteredProducts = products.filter(p => {
+        const cat = (p.nev || p.Nev || '').split('-')[0].trim();
+        const brand = p.gyarto || p.Gyarto;
+        const vis = p.viszkozitas || p.Viszkozitas;
+        
+        const matchCat = !selectedCat || cat === selectedCat;
+        const matchBrand = !selectedBrand || brand === selectedBrand;
+        const matchVis = !selectedVis || vis === selectedVis;
+        
+        return matchCat && matchBrand && matchVis;
+    });
+
+    return (
+        <div className="max-w-7xl mx-auto p-6">
+            <div className="mb-10">
+                <h2 className="text-4xl font-black text-gray-900 uppercase tracking-tighter mb-2">Olajok és Folyadékok</h2>
+                <div className="h-2 w-24 bg-yellow-500 rounded-full"></div>
+            </div>
+
+            {/* Szűrő Sáv */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+                <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase ml-1">Kategória</label>
+                    <select 
+                        value={selectedCat} 
+                        onChange={(e) => setSelectedCat(e.target.value)}
+                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-yellow-500 transition-all"
+                    >
+                        <option value="">Összes kategória</option>
+                        {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase ml-1">Gyártó</label>
+                    <select 
+                        value={selectedBrand} 
+                        onChange={(e) => setSelectedBrand(e.target.value)}
+                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-yellow-500 transition-all"
+                    >
+                        <option value="">Összes márka</option>
+                        {brands.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase ml-1">Viszkozitás</label>
+                    <select 
+                        value={selectedVis} 
+                        onChange={(e) => setSelectedVis(e.target.value)}
+                        className="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-yellow-500 transition-all"
+                    >
+                        <option value="">Összes viszkozitás</option>
+                        {viscosities.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                </div>
+            </div>
+
+            {/* Termék Rács */}
+            {filteredProducts.length === 0 ? (
+                <div className="bg-yellow-50 p-10 rounded-3xl text-center border border-dashed border-yellow-200">
+                    <p className="text-yellow-700 font-medium italic">Sajnos nincs a keresésnek megfelelő termék.</p>
+                    <button onClick={() => {setSelectedCat(''); setSelectedBrand(''); setSelectedVis('');}} className="mt-4 text-sm font-bold text-yellow-600 underline">Szűrők alaphelyzetbe állítása</button>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {filteredProducts.map(p => (
+                        <div key={p.id || p.Id} className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all group flex flex-col h-full overflow-hidden">
+                            <div className="h-52 bg-gray-50 p-6 relative overflow-hidden">
+                                <img 
+                                    src={getImageUrl(p)} 
+                                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" 
+                                    alt={p.nev || p.Nev}
+                                    onError={(e) => e.target.src = "https://placehold.co/400x300?text=Nincs+Kép"}
+                                />
+                                {(p.viszkozitas || p.Viszkozitas) && (
+                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-black shadow-sm border border-gray-100">
+                                        {p.viszkozitas || p.Viszkozitas}
+                                    </div>
+                                )}
                             </div>
-                            <p class="text-xs text-gray-500 mb-1">${p.kategoria} ${p.viszkozitas ? '| ' + p.viszkozitas : ''}</p>
-                            <h3 class="font-bold text-gray-900 mb-2">${p.nev}</h3>
-                            <p class="text-xs text-gray-500 mb-2">${p.gyarto} | ${p.kiszereles}</p>
-                            <div class="flex items-center justify-between">
-                                <span class="text-lg font-bold text-red-600">${parseInt(p.akcios_ar || p.ar).toLocaleString('hu-HU')} Ft</span>
-                                <button onclick="addOilToCart(${p.id})" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-bold">
-                                    Kosárba
-                                </button>
+                            
+                            <div className="p-6 flex flex-col flex-grow text-center">
+                                <span className="text-[10px] font-bold text-yellow-600 uppercase tracking-widest mb-1">{p.gyarto || p.Gyarto}</span>
+                                <h3 className="font-bold text-gray-900 leading-tight mb-4 h-12 line-clamp-2">
+                                    {p.nev || p.Nev}
+                                </h3>
+                                
+                                <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between gap-4">
+                                    <div className="text-left">
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase">Ár</p>
+                                        <p className="text-xl font-black text-gray-900">{Number(p.ar || p.Ar).toLocaleString()} Ft</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => addToCart(p.id || p.Id)}
+                                        className="bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-yellow-500 hover:text-gray-900 transition-all font-bold text-sm shadow-md active:scale-95"
+                                    >
+                                        Kosárba
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    `).join('');
-                }
-            } catch (error) {
-                loading.classList.add('hidden');
-                grid.innerHTML = '<p class="col-span-4 text-center text-red-500">Hiba a betöltéskor</p>';
-            }
-        }
-
-        function handleSearch(event) {
-            searchTerm = event.target.value;
-            loadProducts();
-        }
-
-        async function addOilToCart(productId) {
-            const userId = getUserId();
-            
-            if (!userId) {
-                alert('A kosárba helyezéshez be kell jelentkezni!');
-                window.location.href = 'bejelentkezes.html?redirect=folyadékok.html';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_URL}/cart?action=add`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, olaj_id: productId, mennyiseg: 1 })
-                });
-                const result = await response.json();
-                if (result.success) { alert('Kosárba téve!'); updateCartCount(); }
-            } catch (error) { alert('Hiba'); }
-        }
-  return (
-    <div>
-        {/* <!-- HERO SECTION --> */}
-    <section class="bg-gradient-to-r from-amber-600 to-amber-800 text-white py-12">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <h1 class="text-3xl font-bold mb-4">Olajok és Folyadékok</h1>
-            <p class="text-amber-100">Prémium minőségű motorolajok és folyadékok</p>
+                    ))}
+                </div>
+            )}
         </div>
-    </section>
+    );
+};
 
-    {/* <!-- MAIN CONTENT --> */}
-    <main class="max-w-7xl mx-auto px-4 py-12">
-        <div id="loading" class="text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-        </div>
-        <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
-    </main>
-
-    <footer class="bg-gray-900 text-white py-8">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-gray-400">&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
-        </div>
-    </footer></div>
-  )
-}
+export default Folyadekok;
