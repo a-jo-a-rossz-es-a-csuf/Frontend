@@ -1,272 +1,348 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-export default function Motor() {
+// Kliens oldali (Mock) adatbázis a valós autoalkatresz_db.sql alapján (Motorok)
+const MOTORCYCLE_DATA_DICTIONARY = {
+    brands: {
+        6: 'Honda',
+        7: 'Yamaha'
+    },
+    models: {
+        64: { nev: 'CBR600RR', marka_id: 6 },
+        65: { nev: 'CBR1000RR Fireblade', marka_id: 6 },
+        66: { nev: 'CB500F', marka_id: 6 },
+        67: { nev: 'CB650R', marka_id: 6 },
+        68: { nev: 'Africa Twin CRF1100L', marka_id: 6 },
+        69: { nev: 'NC750X', marka_id: 6 },
+        70: { nev: 'Forza 350', marka_id: 6 },
+        71: { nev: 'PCX125', marka_id: 6 },
+        72: { nev: 'YZF-R6', marka_id: 7 },
+        73: { nev: 'YZF-R1', marka_id: 7 },
+        74: { nev: 'MT-07', marka_id: 7 },
+        75: { nev: 'MT-09', marka_id: 7 },
+        76: { nev: 'Tenere 700', marka_id: 7 },
+        77: { nev: 'Tracer 9', marka_id: 7 },
+        78: { nev: 'XMAX 300', marka_id: 7 },
+        79: { nev: 'NMAX 125', marka_id: 7 }
+    },
+    motors: {
+        28: { kod: 'PC40E', ccm: 599, le: 120, modell_id: 64 },
+        29: { kod: 'SC82E', ccm: 999, le: 217, modell_id: 65 },
+        30: { kod: 'PC60E', ccm: 471, le: 47, modell_id: 66 },
+        31: { kod: 'RH03E', ccm: 649, le: 95, modell_id: 67 },
+        32: { kod: 'RJ27', ccm: 599, le: 118, modell_id: 72 },
+        33: { kod: 'RN65', ccm: 998, le: 200, modell_id: 73 },
+        34: { kod: 'RM33', ccm: 689, le: 73, modell_id: 74 },
+        35: { kod: 'RN69', ccm: 890, le: 119, modell_id: 75 }
+    }
+};
+
+const _generateYearsForMotorModel = (modelId) => {
+    // Alapértelmezett évek, ha valami nem stimmel
+    const defaultYears = ['2025', '2024', '2023', '2022', '2021', '2020'];
+    const modelMap = {
+        64: { tol: 2003, ig: 2025 },
+        65: { tol: 2004, ig: 2025 },
+        66: { tol: 2013, ig: 2025 },
+        67: { tol: 2019, ig: 2025 },
+        68: { tol: 2016, ig: 2025 },
+        69: { tol: 2012, ig: 2025 },
+        70: { tol: 2018, ig: 2025 },
+        71: { tol: 2010, ig: 2025 },
+        72: { tol: 1999, ig: 2025 },
+        73: { tol: 1998, ig: 2025 },
+        74: { tol: 2014, ig: 2025 },
+        75: { tol: 2013, ig: 2025 },
+        76: { tol: 2019, ig: 2025 },
+        77: { tol: 2015, ig: 2025 },
+        78: { tol: 2017, ig: 2025 },
+        79: { tol: 2015, ig: 2025 },
+    };
+    if (modelMap[modelId]) {
+        const { tol, ig } = modelMap[modelId];
+        const res = [];
+        let currentYear = new Date().getFullYear();
+        let endYear = ig > currentYear ? currentYear : ig;
+
+        for (let i = endYear; i >= tol; i--) {
+            res.push(i.toString());
+        }
+        return res;
+    }
+    return defaultYears;
+};
+
+const Motor = () => {
     const API_URL = 'http://localhost:5000/api';
-        let currentModellId = null;
-        let allProducts = [];
 
-        function getUserId() {
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            return user ? user.id : null;
+    // --- Választási állapotok ---
+    const [selections, setSelections] = useState({
+        brand: '',
+        model: '',
+        year: '',
+        motor: ''
+    });
+
+    // --- Adatlisták tárolása ---
+    const [lists, setLists] = useState({
+        brands: [],
+        models: [],
+        years: [],
+        motors: []
+    });
+
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [user, setUser] = useState(null);
+
+    // Kezdeti betöltés
+    useEffect(() => {
+        const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
+        setUser(savedUser);
+        
+        // --- FRONTEND GENERÁLÁS (Motorokhoz) ---
+        const availableBrands = Object.entries(MOTORCYCLE_DATA_DICTIONARY.brands).map(([id, name]) => ({
+             id, nev: name
+        }));
+        setLists(prev => ({ ...prev, brands: availableBrands }));
+    }, []);
+
+    // Ha a márka változik
+    useEffect(() => {
+        if (selections.brand) {
+            const brandModels = Object.entries(MOTORCYCLE_DATA_DICTIONARY.models)
+                .filter(([id, data]) => data.marka_id.toString() === selections.brand)
+                .map(([id, data]) => ({ id, nev: data.nev }));
+
+            setLists(prev => ({ ...prev, models: brandModels, years: [], motors: [] }));
+            setSelections(prev => ({ ...prev, model: '', year: '', motor: '' }));
         }
+    }, [selections.brand]);
 
-        document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
-            updateCartCount();
-            loadBrands();
+    // Ha a modell változik
+    useEffect(() => {
+        if (selections.model) {
+            const modelMotors = Object.entries(MOTORCYCLE_DATA_DICTIONARY.motors)
+                .filter(([id, data]) => data.modell_id.toString() === selections.model);
             
-            document.getElementById('brandSelect').addEventListener('change', function() {
-                if (this.value) loadModels(this.value);
-                else resetSelects(['modelSelect', 'yearSelect', 'motorSelect']);
-            });
-            
-            document.getElementById('modelSelect').addEventListener('change', function() {
-                if (this.value) {
-                    currentModellId = this.value;
-                    loadYearsAndMotors(this.value);
-                } else {
-                    resetSelects(['yearSelect', 'motorSelect']);
-                }
-            });
-        });
-
-        function checkLoginStatus() {
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            const loginLink = document.getElementById('loginLink');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const userInfo = document.getElementById('userInfo');
-            const adminLink = document.getElementById('adminLink');
-            
-            if (user) {
-                userInfo.textContent = user.email;
-                userInfo.classList.remove('hidden');
-                loginLink.classList.add('hidden');
-                logoutBtn.classList.remove('hidden');
-                if (user.szerepkor === 'admin') adminLink.classList.remove('hidden');
-            } else {
-                loginLink.classList.remove('hidden');
-                logoutBtn.classList.add('hidden');
-                userInfo.classList.add('hidden');
-            }
+            setLists(prev => ({ 
+                ...prev, 
+                years: _generateYearsForMotorModel(parseInt(selections.model)),
+                motors: modelMotors.map(([id, data]) => ({ 
+                    id, 
+                    kod: data.kod, 
+                    ccm: data.ccm, 
+                    le: data.le 
+                }))
+            }));
+            setSelections(prev => ({ ...prev, year: '', motor: '' }));
         }
+    }, [selections.model]);
 
-        function logout() {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            window.location.reload();
-        }
+    // Termék keresés
+    const handleSearch = async () => {
+        if (!selections.model) return alert('Kérjük, válasszon ki egy modellt!');
 
-        async function updateCartCount() {
-            const userId = getUserId();
-            const cartCount = document.getElementById('cart-count');
-            
-            if (!userId) {
-                cartCount.textContent = '0';
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_URL}/cart?action=get&user_id=${userId}`);
-                const data = await response.json();
-                if (data.success && data.items) {
-                    let count = 0;
-                    data.items.forEach(item => count += parseInt(item.mennyiseg));
-                    cartCount.textContent = count;
-                }
-            } catch (error) {
-                cartCount.textContent = '0';
-            }
-        }
+        setLoading(true);
+        try {
+            const res = await axios.get(`${API_URL}/products`);
 
-        function resetSelects(ids) {
-            ids.forEach(id => {
-                const s = document.getElementById(id);
-                s.innerHTML = '<option value="">Először válasszon ' + (id === 'modelSelect' ? 'márkát' : 'modellt') + '</option>';
-                s.disabled = true;
-            });
-        }
-
-        function showStatus(msg, type) {
-            const d = document.getElementById('statusMessage');
-            d.textContent = msg;
-            d.className = `mb-4 p-3 rounded-lg text-sm ${type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`;
-            d.classList.remove('hidden');
-        }
-
-        async function loadBrands() {
-            try {
-                const response = await fetch(`${API_URL}/cars?action=markak&tipus=motor`);
-                const result = await response.json();
-                const select = document.getElementById('brandSelect');
-                if (result.success && result.data) {
-                    select.innerHTML = '<option value="">Válasszon márkát</option>';
-                    result.data.forEach(b => select.innerHTML += `<option value="${b.id}">${b.nev}</option>`);
-                }
-            } catch (e) { showStatus('Kapcsolódási hiba', 'error'); }
-        }
-
-        async function loadModels(markaId) {
-            const s = document.getElementById('modelSelect');
-            s.innerHTML = '<option value="">Betöltés...</option>';
-            s.disabled = false;
-            resetSelects(['yearSelect', 'motorSelect']);
-            
-            try {
-                const response = await fetch(`${API_URL}/cars?action=modellek&marka_id=${markaId}`);
-                const result = await response.json();
-                if (result.success && result.data) {
-                    s.innerHTML = '<option value="">Válasszon modellt</option>';
-                    result.data.forEach(m => {
-                        const name = m.generacio ? `${m.modell_nev} ${m.generacio}` : m.modell_nev;
-                        s.innerHTML += `<option value="${m.id}" data-start="${m.evjarat_tol}" data-end="${m.evjarat_ig || 2025}">${name} (${m.evjarat_tol}-${m.evjarat_ig || 'napjainkig'})</option>`;
+            if (res.status === 200) {
+                const safeProducts = res.data || [];
+                
+                // Szűrés 1: Motorok kategória ID-ja 15
+                let filtered = safeProducts.filter(p => (p.kategoriaId || p.KategoriaId) === 15);
+                
+                // Szűrés 2: Modell alapján a cikkszámban keresünk
+                if (selections.model && MOTORCYCLE_DATA_DICTIONARY.models[selections.model]) {
+                    const modelName = MOTORCYCLE_DATA_DICTIONARY.models[selections.model].nev.toUpperCase();
+                    filtered = filtered.filter(p => {
+                        const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
+                        const nev = String(p.nev || p.Nev || '').toUpperCase();
+                        return cikkszam.includes(modelName) || nev.includes(modelName);
                     });
                 }
-            } catch (e) { showStatus('Hiba', 'error'); }
-        }
-
-        async function loadYearsAndMotors(modellId) {
-            const yearS = document.getElementById('yearSelect');
-            const motorS = document.getElementById('motorSelect');
-            const opt = document.getElementById('modelSelect').selectedOptions[0];
-            
-            if (opt && opt.dataset.start) {
-                const start = parseInt(opt.dataset.start), end = parseInt(opt.dataset.end);
-                yearS.innerHTML = '<option value="">Válasszon évjáratot</option>';
-                for (let y = end; y >= start; y--) yearS.innerHTML += `<option value="${y}">${y}</option>`;
-                yearS.disabled = false;
+                
+                setProducts(filtered);
+            } else {
+                setProducts([]);
             }
 
-            try {
-                const response = await fetch(`${API_URL}/cars?action=motorok&modell_id=${modellId}`);
-                const result = await response.json();
-                motorS.innerHTML = '<option value="">Válasszon motort</option>';
-                if (result.success && result.data) {
-                    result.data.forEach(m => motorS.innerHTML += `<option value="${m.id}">${m.hengerurtartalom} cm³ ${m.teljesitmeny_le} LE (${m.motor_kod})</option>`);
-                    motorS.disabled = false;
-                }
-            } catch (e) {}
+        } catch (err) {
+            console.error("Keresési hiba:", err);
+            setProducts([]);
+            alert('Hiba történt az adatok lekérésekor.');
+        } finally {
+            setLoading(false);
         }
+    };
 
-        async function searchProducts() {
-            if (!currentModellId) { alert('Válasszon modellt!'); return; }
-            try {
-                const response = await fetch(`${API_URL}/products?action=search&modell_id=${currentModellId}&tipus=motor`);
-                const result = await response.json();
-                if (result.success) { allProducts = result.products || []; displayProducts(); }
-            } catch (e) { showStatus('Hiba', 'error'); }
-        }
+    // JAVÍTOTT KOSÁRBA TÉTEL (Backend DTO-hoz igazítva)
+    const addToCart = async (productId) => {
+        if (!user || !user.id) return alert('A vásárláshoz be kell jelentkeznie!');
+        
+        try {
+            const payload = {
+                userId: parseInt(user.id),
+                alkatreszId: parseInt(productId),
+                olajId: null,
+                mennyiseg: 1
+            };
 
-        function displayProducts() {
-            const grid = document.getElementById('productsGrid');
-            document.getElementById('resultsInfo').classList.remove('hidden');
-            document.getElementById('resultsCount').textContent = allProducts.length;
+            const res = await axios.post(`${API_URL}/cart`, payload);
             
-            if (!allProducts.length) { grid.innerHTML = '<p class="col-span-4 text-center text-gray-500 py-8">Nincs találat.</p>'; return; }
-            
-            grid.innerHTML = allProducts.map(p => `
-                <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition">
-                    <div class="h-40 bg-gray-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                        ${p.kep_url
-                            ? `<img src="${p.kep_url}" alt="${p.nev}" class="h-full w-full object-cover rounded-lg">`
-                            : `<svg class="w-16 h-16 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>`}
-                    </div>
-                    <p class="text-xs text-gray-500 mb-1">${p.cikkszam}</p>
-                    <h3 class="font-medium text-gray-900 mb-2">${p.nev}</h3>
-                    <span class="text-xl font-bold text-orange-500">${parseInt(p.akcios_ar || p.ar).toLocaleString('hu-HU')} Ft</span>
-                    <button onclick="addToCart(${p.id})" class="w-full mt-3 bg-orange-500 hover:bg-orange-600 text-white py-2 rounded-lg font-medium">Kosarba</button>
-                </div>
-            `).join('');
-        }
-
-        async function addToCart(productId) {
-            const userId = getUserId();
-            
-            if (!userId) {
-                alert('A kosárba helyezéshez be kell jelentkezni!');
-                window.location.href = 'bejelentkezes.html?redirect=motor.html';
-                return;
+            if (res.status === 200 || res.status === 201) {
+                alert('Termék a kosárba került!');
+                window.dispatchEvent(new Event('cartUpdated'));
+            } else {
+                alert('Hiba történt a kosárba tételkor.');
             }
-            
-            try {
-                const response = await fetch(`${API_URL}/cart?action=add`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: userId, alkatresz_id: productId, mennyiseg: 1 })
-                });
-                const data = await response.json();
-                if (data.success) { updateCartCount(); alert('Kosárba téve!'); }
-            } catch (e) { alert('Hiba'); }
+        } catch (err) {
+            console.error("Hiba kosárba rakáskor:", err.response?.data || err);
+            alert('Hiba történt a kosárba tételkor. Ellenőrizd a konzolt!');
         }
-  return (
-    <div>
-         {/* <!-- SEARCH SECTION --> */}
-    <section class="bg-white border-b-4 border-orange-500 py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="bg-gray-50 rounded-lg p-6">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="bg-orange-500 p-3 rounded-lg">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
+    };
+
+    const getImageUrl = (product) => {
+        const path = product.kepUrl || product.kep_url || product.KepUrl;
+        if (!path) return "https://placehold.co/400x300?text=Nincs+Kép";
+
+        const fileName = String(path).trim().split(/[/\\]/).pop();
+        return `/images/parts/${fileName}`;
+    };
+
+    return (
+        <div className="bg-gray-50 min-h-screen">
+            <section className="bg-white border-b py-10 shadow-sm">
+                <div className="max-w-7xl mx-auto px-4">
+                    <div className="flex items-center gap-3 mb-8">
+                        <div className="w-2 h-8 bg-green-600 rounded-full"></div>
+                        <h1 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
+                            Motorkerékpár Alkatrészek
+                        </h1>
                     </div>
-                    <div>
-                        <h1 class="text-2xl font-bold text-gray-900">Motorkerékpár alkatrész kereső</h1>
-                        <p class="text-gray-600">Honda és Yamaha alkatrészek</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Márka</label>
+                            <select 
+                                value={selections.brand}
+                                onChange={(e) => setSelections({...selections, brand: e.target.value})}
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 outline-none transition"
+                            >
+                                <option value="">Összes márka</option>
+                                {lists.brands?.map((b) => <option key={b.id} value={b.id}>{b.nev}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Modell</label>
+                            <select 
+                                disabled={!selections.brand}
+                                value={selections.model}
+                                onChange={(e) => setSelections({...selections, model: e.target.value})}
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 outline-none disabled:opacity-50 transition"
+                            >
+                                <option value="">Válasszon modellt</option>
+                                {lists.models?.map((m) => <option key={m.id} value={m.id}>{m.nev}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Évjárat</label>
+                            <select 
+                                disabled={!selections.model}
+                                value={selections.year}
+                                onChange={(e) => setSelections({...selections, year: e.target.value})}
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 outline-none disabled:opacity-50 transition"
+                            >
+                                <option value="">Bármely évjárat</option>
+                                {lists.years?.map(y => <option key={y} value={y}>{y}</option>)}
+                            </select>
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-gray-400 uppercase px-1">Motor</label>
+                            <select 
+                                disabled={!selections.model}
+                                value={selections.motor}
+                                onChange={(e) => setSelections({...selections, motor: e.target.value})}
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-600 outline-none disabled:opacity-50 transition"
+                            >
+                                <option value="">Összes motortípus</option>
+                                {lists.motors?.map(m => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.kod} - {m.ccm}ccm ({m.le}LE)
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="mt-6 flex justify-center">
+                        <button 
+                            onClick={handleSearch}
+                            className="bg-green-600 hover:bg-green-700 text-white px-12 py-3 rounded-xl font-bold shadow-lg shadow-green-200 transition-all active:scale-95"
+                        >
+                            ALKATRÉSZEK KERESÉSE
+                        </button>
                     </div>
                 </div>
+            </section>
 
-                <div id="statusMessage" class="hidden mb-4 p-3 rounded-lg text-sm"></div>
-
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Márka:</label>
-                        <select id="brandSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                            <option value="">Válasszon márkát</option>
-                        </select>
+            <main className="max-w-7xl mx-auto px-4 py-12">
+                {loading ? (
+                    <div className="flex justify-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Modell:</label>
-                        <select id="modelSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" disabled>
-                            <option value="">Először válasszon márkát</option>
-                        </select>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {products?.length > 0 ? (
+                            products.map(product => (
+                                <div key={product.id || product.Id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col group">
+                                    <div className="relative h-48 bg-gray-100 overflow-hidden flex items-center justify-center">
+                                        <img 
+                                            src={getImageUrl(product)} 
+                                            alt={product.nev || product.Nev} 
+                                            onError={(e) => { 
+                                                e.target.onerror = null; 
+                                                e.target.src = "https://placehold.co/400x300?text=Kép+Hiba"; 
+                                            }}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                        />
+                                        <div className="absolute top-3 left-3 bg-green-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md">
+                                            {product.cikkszam || product.Cikkszam}
+                                        </div>
+                                    </div>
+                                    <div className="p-5 flex-grow flex flex-col">
+                                        <h3 className="font-bold text-gray-900 mb-2 h-12 line-clamp-2">{product.nev || product.Nev}</h3>
+                                        <p className="text-gray-500 text-sm mb-4 line-clamp-2">{product.leiras || product.Leiras}</p>
+                                        <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between">
+                                            <span className="text-xl font-black text-gray-900">
+                                                {Number(product.ar || product.Ar).toLocaleString()} Ft
+                                            </span>
+                                            <button 
+                                                onClick={() => addToCart(product.id || product.Id)}
+                                                className="bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors font-bold text-sm"
+                                            >
+                                                Kosárba
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full text-center py-20">
+                                <p className="text-gray-400 text-lg">
+                                    {selections.model ? 'Nincs találat a kiválasztott szűrésre.' : 'Kérjük, válasszon ki egy típust a kereséshez.'}
+                                </p>
+                            </div>
+                        )}
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Évjárat:</label>
-                        <select id="yearSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" disabled>
-                            <option value="">Először válasszon modellt</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Motor:</label>
-                        <select id="motorSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500" disabled>
-                            <option value="">Először válasszon modellt</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="mt-6 flex justify-center">
-                    <button onclick="searchProducts()" class="bg-orange-500 hover:bg-orange-600 text-white px-12 py-3 rounded-lg font-bold transition-colors">
-                        Alkatrészek keresése
-                    </button>
-                </div>
-            </div>
+                )}
+            </main>
         </div>
-    </section>
+    );
+};
 
-    {/* <!-- Products Section --> */}
-    <section class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div id="resultsInfo" class="hidden mb-6">
-                <h2 class="text-xl font-bold text-gray-900">Találatok: <span id="resultsCount">0</span> termék</h2>
-            </div>
-            <div id="productsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
-        </div>
-    </section>
-
-    <footer class="bg-gray-900 text-white py-8">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-gray-400">&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
-        </div>
-    </footer></div>
-  )
-}
+export default Motor;
