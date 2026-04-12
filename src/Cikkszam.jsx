@@ -1,184 +1,157 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-export default function Cikkszam() {
+const CikkszamKereso = () => {
     const API_URL = 'http://localhost:5000/api';
+    const [sku, setSku] = useState('');
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [user, setUser] = useState(null);
 
-        document.addEventListener('DOMContentLoaded', function() {
-            checkLoginStatus();
-            updateCartCount();
-            
-            document.getElementById('partNumber').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') searchByPartNumber();
-            });
-        });
+    useEffect(() => {
+        const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
+        setUser(savedUser);
+    }, []);
 
-        function checkLoginStatus() {
-            const user = JSON.parse(localStorage.getItem('user') || 'null');
-            const loginLink = document.getElementById('loginLink');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const userInfo = document.getElementById('userInfo');
-            const adminLink = document.getElementById('adminLink');
-            
-            if (user) {
-                userInfo.textContent = user.email;
-                userInfo.classList.remove('hidden');
-                loginLink.classList.add('hidden');
-                logoutBtn.classList.remove('hidden');
-                if (user.szerepkor === 'admin') adminLink.classList.remove('hidden');
-            } else {
-                loginLink.classList.remove('hidden');
-                logoutBtn.classList.add('hidden');
-                userInfo.classList.add('hidden');
-            }
-        }
+    const getImageUrl = (product) => {
+        const path = product.kepUrl || product.KepUrl || product.kep_url;
+        if (!path) return "https://placehold.co/400x300?text=Nincs+Kép";
+        
+        const fileName = String(path).trim().split(/[/\\]/).pop();
+        return `/images/parts/${fileName}`;
+    };
 
-        function logout() {
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            window.location.reload();
-        }
+    const handleSkuSearch = async (e) => {
+        e.preventDefault();
+        const searchSku = sku.trim();
+        if (!searchSku) return;
 
-        async function updateCartCount() {
-            let sessionId = localStorage.getItem('cartSessionId');
-            if (!sessionId) {
-                sessionId = 'sess_' + Math.random().toString(36).substr(2, 16);
-                localStorage.setItem('cartSessionId', sessionId);
-            }
-            try {
-                const response = await fetch(`${API_URL}/cart?action=get&session_id=${sessionId}`);
-                const data = await response.json();
-                if (data.success && data.items) {
-                    let count = 0;
-                    data.items.forEach(item => count += parseInt(item.mennyiseg));
-                    document.getElementById('cart-count').textContent = count;
-                }
-            } catch (error) {}
-        }
+        setLoading(true);
+        setError('');
+        setProducts([]);
 
-        async function searchByPartNumber() {
-            const partNumber = document.getElementById('partNumber').value.trim();
-            if (!partNumber) { 
-                alert('Adjon meg cikkszámot!'); 
-                return; 
-            }
-            
-            const grid = document.getElementById('resultsGrid');
-            const info = document.getElementById('resultsInfo');
-            grid.innerHTML = '<p class="col-span-4 text-center py-8"><span class="text-gray-500">Keresés...</span></p>';
-            
-            try {
-                const response = await fetch(`${API_URL}/products?action=search_cikkszam&cikkszam=${encodeURIComponent(partNumber)}`);
-                const text = await response.text();
-                
-                let result;
-                try {
-                    result = JSON.parse(text);
-                } catch (e) {
-                    grid.innerHTML = '<p class="col-span-4 text-center text-red-500 py-8">Szerverhiba történt.</p>';
-                    return;
-                }
-                
-                if (result.success && result.products && result.products.length > 0) {
-                    info.textContent = `${result.products.length} találat a(z) "${partNumber}" keresésre`;
-                    info.classList.remove('hidden');
-                    
-                    grid.innerHTML = result.products.map(p => `
-                        <div class="bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition">
-                            <div class="h-32 bg-gray-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                                ${p.kep_url
-                                    ? `<img src="${p.kep_url}" alt="${p.nev}" class="h-full w-full object-cover rounded-lg">`
-                                    : `<svg class="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                                    </svg>`}
-                            </div>
-                            <p class="text-xs text-red-600 font-mono mb-1">${p.cikkszam}</p>
-                            <h3 class="font-medium text-gray-900 mb-1 line-clamp-2">${p.nev}</h3>
-                            <p class="text-xs text-gray-500 mb-2">${p.kategoria || 'Alkatresz'}</p>
-                            <div class="flex items-center justify-between">
-                                <span class="text-xl font-bold text-red-600">${parseInt(p.ar).toLocaleString('hu-HU')} Ft</span>
-                                <span class="text-xs ${p.keszlet > 0 ? 'text-green-600' : 'text-red-500'}">${p.keszlet > 0 ? 'Raktaron' : 'Nincs raktaron'}</span>
-                            </div>
-                            <button onclick="addToCart(${p.id})" class="w-full mt-3 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg font-medium transition ${p.keszlet <= 0 ? 'opacity-50 cursor-not-allowed' : ''}" ${p.keszlet <= 0 ? 'disabled' : ''}>
-                                Kosarba
-                            </button>
-                        </div>
-                    `).join('');
-                } else {
-                    info.classList.add('hidden');
-                    grid.innerHTML = `
-                        <div class="col-span-4 text-center py-12">
-                            <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            <p class="text-gray-500 text-lg">Nincs találat a(z) "${partNumber}" cikkszámra.</p>
-                            <p class="text-gray-400 text-sm mt-2">Próbáljon meg egy másik cikkszámot vagy annak egy részét.</p>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                grid.innerHTML = '<p class="col-span-4 text-center text-red-500 py-8">Hiba történt a keresés során.</p>';
-            }
-        }
+        try {
+            const res = await axios.get(`${API_URL}/products`);
 
-        async function addToCart(productId) {
-            let sessionId = localStorage.getItem('cartSessionId');
-            if (!sessionId) {
-                sessionId = 'sess_' + Math.random().toString(36).substr(2, 16);
-                localStorage.setItem('cartSessionId', sessionId);
-            }
-            
-            try {
-                const response = await fetch(`${API_URL}/cart?action=add`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ session_id: sessionId, alkatresz_id: productId, mennyiseg: 1 })
+            if (res.status === 200) {
+                const allData = res.data || [];
+                // FRONTEND SZŰRÉS: Csak a karakterre pontosan megegyező cikkszámokat tartjuk meg
+                const exactMatches = allData.filter(p => {
+                    const productSku = String(p.cikkszam || p.Cikkszam || "").trim();
+                    return productSku.toUpperCase() === searchSku.toUpperCase();
                 });
-                const data = await response.json();
-                if (data.success) { 
-                    updateCartCount(); 
-                    alert('Termék a kosárba került!'); 
+
+                if (exactMatches.length > 0) {
+                    setProducts(exactMatches);
+                } else {
+                    setError('Nincs pontos találat erre a cikkszámra.');
                 }
-            } catch (e) { 
-                alert('Hiba történt a kosárba rakáskor'); 
+            } else {
+                setError('Nincs találat erre a cikkszámra.');
             }
+        } catch (err) {
+            console.error("Cikkszám keresési hiba:", err);
+            setError('Hiba történt a szerverrel való kommunikáció során.');
+        } finally {
+            setLoading(false);
         }
-  return (
-    <div>
-        {/* <!-- SEARCH SECTION --> */}
-    <section class="bg-white border-b-4 border-red-600 py-8">
-        <div class="max-w-4xl mx-auto px-4">
-            <div class="bg-gray-50 rounded-lg p-6">
-                <h1 class="text-2xl font-bold text-gray-900 mb-4">Cikkszám alapú keresés</h1>
-                <p class="text-gray-600 mb-6">Keressen OE, OEM vagy utángyártott cikkszám alapján</p>
-                
-                <div class="flex gap-2">
-                    <input type="text" id="partNumber" placeholder="Pl.: BMW-FEKBETET-001, AUD-OLAJSZ-001" 
-                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-red-600"/>
-                    <button onclick="searchByPartNumber()" class="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-lg font-bold transition">
-                        Keresés
-                    </button>
+    };
+
+    const addToCart = async (productId) => {
+        if (!user || !user.id) return alert('A vásárláshoz be kell jelentkeznie!');
+
+        try {
+            const payload = {
+                userId: parseInt(user.id),
+                alkatreszId: parseInt(productId),
+                olajId: null,
+                mennyiseg: 1
+            };
+
+            const res = await axios.post(`${API_URL}/cart`, payload);
+
+            if (res.status === 200) {
+                alert('Termék a kosárba került!');
+                window.dispatchEvent(new Event('cartUpdated'));
+            } else {
+                alert('Hiba történt a kosárba tételkor.');
+            }
+        } catch (err) {
+            console.error("Kosár hiba:", err.response?.data || err);
+            alert('Hiba történt a kosárba tételkor.');
+        }
+    };
+
+    return (
+        <div className="max-w-4xl mx-auto p-6">
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+                <div className="bg-slate-800 p-8 text-white">
+                    <h2 className="text-xl font-bold uppercase tracking-widest">Gyorskeresés Cikkszámra</h2>
+                    <p className="text-slate-400 text-sm mt-1">Ha tudja a pontos gyári kódot, itt azonnal megtalálja.</p>
                 </div>
-                
-                <div class="mt-4 text-sm text-gray-500">
-                    <p>Tipp: Írja be a cikkszámot vagy annak egy részét. A rendszer az összes egyező terméket megjeleníti.</p>
+
+                <form onSubmit={handleSkuSearch} className="p-8 border-b">
+                    <div className="flex gap-3">
+                        <input
+                            type="text"
+                            value={sku}
+                            onChange={(e) => setSku(e.target.value)}
+                            placeholder="Pl: 11217581008..."
+                            className="flex-grow p-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-orange-500 outline-none transition-all font-bold"
+                        />
+                        <button 
+                            type="submit" 
+                            disabled={loading}
+                            className="bg-orange-600 hover:bg-orange-700 text-white px-10 rounded-2xl font-bold transition-all disabled:opacity-50"
+                        >
+                            {loading ? 'KERESÉS...' : 'KERESÉS'}
+                        </button>
+                    </div>
+                    {error && <p className="mt-3 text-red-500 text-sm font-semibold">{error}</p>}
+                </form>
+
+                <div className="p-8 bg-gray-50/30">
+                    <div className="grid grid-cols-1 gap-4">
+                        {products.length > 0 ? (
+                            products.map((p) => (
+                                <div key={p.id || p.Id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between group hover:border-orange-200 transition-colors">
+                                    <div className="flex items-center gap-5">
+                                        <img 
+                                            src={getImageUrl(p)} 
+                                            className="w-20 h-20 object-cover rounded-xl"
+                                            alt={p.nev || p.Nev || "Termék kép"}
+                                            onError={(e) => {
+                                                e.target.onerror = null;
+                                                e.target.src = "https://placehold.co/400x300?text=Nincs+Kép";
+                                            }}
+                                        />
+                                        <div>
+                                            <div className="text-[10px] font-black text-orange-600 uppercase mb-1">{p.cikkszam || p.Cikkszam}</div>
+                                            <h4 className="font-bold text-gray-900">{p.nev || p.Nev}</h4>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-xl font-black text-gray-900 mb-2">
+                                            {Number(p.ar || p.Ar).toLocaleString()} Ft
+                                        </div>
+                                        <button 
+                                            onClick={() => addToCart(p.id || p.Id)}
+                                            className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-orange-600 transition-colors"
+                                        >
+                                            KOSÁRBA
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            !loading && sku && <p className="text-center text-gray-400">Használja a keresőt a pontos találathoz.</p>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
+    );
+};
 
-    {/* <!-- Results --> */}
-    <section class="py-8">
-        <div class="max-w-7xl mx-auto px-4">
-            <div id="resultsInfo" class="mb-4 text-gray-600 hidden"></div>
-            <div id="resultsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"></div>
-        </div>
-    </section>
-
-    {/* <!-- FOOTER --> */}
-    <footer class="bg-gray-900 text-white py-8">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-            <p class="text-gray-400">&copy; 2025 AutoParts Pro. Minden jog fenntartva.</p>
-        </div>
-    </footer></div>
-  )
-}
+export default CikkszamKereso;
