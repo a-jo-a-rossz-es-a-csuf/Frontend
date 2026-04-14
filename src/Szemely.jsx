@@ -1,163 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Kliens oldali (Mock) adatbázis a valós autoalkatresz_db.sql alapján (Személyautók)
-const CAR_DATA_DICTIONARY = {
-    brands: {
-        1: 'BMW',
-        2: 'Audi',
-        3: 'Mercedes-Benz'
-    },
-    models: {
-        1: { nev: '1-es sorozat', generacio: 'E87', marka_id: 1 },
-        2: { nev: '1-es sorozat', generacio: 'F20', marka_id: 1 },
-        3: { nev: '3-as sorozat', generacio: 'E46', marka_id: 1 },
-        4: { nev: '3-as sorozat', generacio: 'E90', marka_id: 1 },
-        5: { nev: '3-as sorozat', generacio: 'F30', marka_id: 1 },
-        6: { nev: '3-as sorozat', generacio: 'G20', marka_id: 1 },
-        7: { nev: '5-ös sorozat', generacio: 'E39', marka_id: 1 },
-        8: { nev: '5-ös sorozat', generacio: 'E60', marka_id: 1 },
-        9: { nev: '5-ös sorozat', generacio: 'F10', marka_id: 1 },
-        10: { nev: '5-ös sorozat', generacio: 'G30', marka_id: 1 },
-        11: { nev: 'X3', generacio: 'E83', marka_id: 1 },
-        12: { nev: 'X3', generacio: 'F25', marka_id: 1 },
-        13: { nev: 'X3', generacio: 'G01', marka_id: 1 },
-        14: { nev: 'X5', generacio: 'E53', marka_id: 1 },
-        15: { nev: 'X5', generacio: 'E70', marka_id: 1 },
-        16: { nev: 'X5', generacio: 'F15', marka_id: 1 },
-        17: { nev: 'X5', generacio: 'G05', marka_id: 1 },
-        18: { nev: 'A3', generacio: '8L', marka_id: 2 },
-        19: { nev: 'A3', generacio: '8P', marka_id: 2 },
-        20: { nev: 'A3', generacio: '8V', marka_id: 2 },
-        21: { nev: 'A3', generacio: '8Y', marka_id: 2 },
-        22: { nev: 'A4', generacio: 'B5', marka_id: 2 },
-        23: { nev: 'A4', generacio: 'B6', marka_id: 2 },
-        24: { nev: 'A4', generacio: 'B7', marka_id: 2 },
-        25: { nev: 'A4', generacio: 'B8', marka_id: 2 },
-        26: { nev: 'A4', generacio: 'B9', marka_id: 2 },
-        27: { nev: 'A6', generacio: 'C5', marka_id: 2 },
-        28: { nev: 'A6', generacio: 'C6', marka_id: 2 },
-        29: { nev: 'A6', generacio: 'C7', marka_id: 2 },
-        30: { nev: 'A6', generacio: 'C8', marka_id: 2 },
-        31: { nev: 'Q5', generacio: '8R', marka_id: 2 },
-        32: { nev: 'Q5', generacio: 'FY', marka_id: 2 },
-        33: { nev: 'Q7', generacio: '4L', marka_id: 2 },
-        34: { nev: 'Q7', generacio: '4M', marka_id: 2 },
-        35: { nev: 'A-osztály', generacio: 'W169', marka_id: 3 },
-        36: { nev: 'A-osztály', generacio: 'W176', marka_id: 3 },
-        37: { nev: 'A-osztály', generacio: 'W177', marka_id: 3 },
-        38: { nev: 'C-osztály', generacio: 'W203', marka_id: 3 },
-        39: { nev: 'C-osztály', generacio: 'W204', marka_id: 3 },
-        40: { nev: 'C-osztály', generacio: 'W205', marka_id: 3 },
-        41: { nev: 'C-osztály', generacio: 'W206', marka_id: 3 },
-        42: { nev: 'E-osztály', generacio: 'W211', marka_id: 3 },
-        43: { nev: 'E-osztály', generacio: 'W212', marka_id: 3 },
-        44: { nev: 'E-osztály', generacio: 'W213', marka_id: 3 },
-        45: { nev: 'GLA', generacio: 'X156', marka_id: 3 },
-        46: { nev: 'GLA', generacio: 'H247', marka_id: 3 },
-        47: { nev: 'GLC', generacio: 'X253', marka_id: 3 },
-        48: { nev: 'GLC', generacio: 'X254', marka_id: 3 },
-        49: { nev: 'GLE', generacio: 'W166', marka_id: 3 },
-        50: { nev: 'GLE', generacio: 'V167', marka_id: 3 },
-        51: { nev: 'S-osztály', generacio: 'W222', marka_id: 3 }
-    },
-    motors: {
-        1: { kod: 'N46B20', ccm: 1995, le: 150, modell_id: 4 },
-        2: { kod: 'N52B25', ccm: 2497, le: 218, modell_id: 4 },
-        3: { kod: 'N47D20', ccm: 1995, le: 177, modell_id: 4 },
-        4: { kod: 'N20B20', ccm: 1997, le: 184, modell_id: 5 },
-        5: { kod: 'B48B20', ccm: 1998, le: 252, modell_id: 5 },
-        6: { kod: 'B47D20', ccm: 1995, le: 190, modell_id: 5 },
-        7: { kod: 'N20B20', ccm: 1997, le: 184, modell_id: 9 },
-        8: { kod: 'N55B30', ccm: 2979, le: 306, modell_id: 9 },
-        9: { kod: 'N57D30', ccm: 2993, le: 258, modell_id: 9 },
-        10: { kod: 'CDNC', ccm: 1984, le: 180, modell_id: 25 },
-        11: { kod: 'CAGA', ccm: 1968, le: 143, modell_id: 25 },
-        12: { kod: 'CAHA', ccm: 1968, le: 170, modell_id: 25 },
-        13: { kod: 'CYRB', ccm: 1984, le: 190, modell_id: 26 },
-        14: { kod: 'DCPC', ccm: 1968, le: 150, modell_id: 26 },
-        15: { kod: 'DETA', ccm: 1968, le: 190, modell_id: 26 },
-        16: { kod: 'M274', ccm: 1991, le: 184, modell_id: 40 },
-        17: { kod: 'M276', ccm: 2996, le: 333, modell_id: 40 },
-        18: { kod: 'OM654', ccm: 1950, le: 194, modell_id: 40 },
-        19: { kod: 'M264', ccm: 1991, le: 197, modell_id: 44 },
-        20: { kod: 'M276', ccm: 2996, le: 333, modell_id: 44 },
-        21: { kod: 'OM654', ccm: 1950, le: 194, modell_id: 44 }
-    }
-};
-
-const _generateYearsForModel = (modelId) => {
-    // Alapértelmezett évek, ha valami nem stimmel
-    const defaultYears = ['2024', '2023', '2022', '2021', '2020', '2019', '2018'];
-    const modelMap = {
-        1: { tol: 2004, ig: 2011 },
-        2: { tol: 2011, ig: 2019 },
-        3: { tol: 1998, ig: 2006 },
-        4: { tol: 2005, ig: 2012 },
-        5: { tol: 2012, ig: 2019 },
-        6: { tol: 2019, ig: 2025 },
-        7: { tol: 1995, ig: 2004 },
-        8: { tol: 2003, ig: 2010 },
-        9: { tol: 2010, ig: 2017 },
-        10: { tol: 2017, ig: 2025 },
-        11: { tol: 2003, ig: 2010 },
-        12: { tol: 2010, ig: 2017 },
-        13: { tol: 2017, ig: 2025 },
-        14: { tol: 1999, ig: 2006 },
-        15: { tol: 2006, ig: 2013 },
-        16: { tol: 2013, ig: 2018 },
-        17: { tol: 2018, ig: 2025 },
-        18: { tol: 1996, ig: 2003 },
-        19: { tol: 2003, ig: 2012 },
-        20: { tol: 2012, ig: 2020 },
-        21: { tol: 2020, ig: 2025 },
-        22: { tol: 1994, ig: 2001 },
-        23: { tol: 2000, ig: 2006 },
-        24: { tol: 2004, ig: 2009 },
-        25: { tol: 2007, ig: 2015 },
-        26: { tol: 2015, ig: 2025 },
-        27: { tol: 1997, ig: 2004 },
-        28: { tol: 2004, ig: 2011 },
-        29: { tol: 2011, ig: 2018 },
-        30: { tol: 2018, ig: 2025 },
-        31: { tol: 2008, ig: 2017 },
-        32: { tol: 2017, ig: 2025 },
-        33: { tol: 2005, ig: 2015 },
-        34: { tol: 2015, ig: 2025 },
-        35: { tol: 2004, ig: 2012 },
-        36: { tol: 2012, ig: 2018 },
-        37: { tol: 2018, ig: 2025 },
-        38: { tol: 2000, ig: 2007 },
-        39: { tol: 2007, ig: 2014 },
-        40: { tol: 2014, ig: 2021 },
-        41: { tol: 2021, ig: 2025 },
-        42: { tol: 2002, ig: 2009 },
-        43: { tol: 2009, ig: 2016 },
-        44: { tol: 2016, ig: 2023 },
-        45: { tol: 2013, ig: 2020 },
-        46: { tol: 2020, ig: 2025 },
-        47: { tol: 2015, ig: 2022 },
-        48: { tol: 2022, ig: 2025 },
-        49: { tol: 2015, ig: 2019 },
-        50: { tol: 2019, ig: 2025 },
-        51: { tol: 2013, ig: 2020 },
-    };
-    
-    if (modelMap[modelId]) {
-        const { tol, ig } = modelMap[modelId];
-        const res = [];
-        // Fordított sorrendben jelenítjük meg a frissebbtől a régebbiig
-        let currentYear = new Date().getFullYear();
-        let endYear = ig > currentYear ? currentYear : ig;
-
-        for (let i = endYear; i >= tol; i--) {
-            res.push(i.toString());
-        }
-        return res;
-    }
-    return defaultYears;
-};
-
 const Szemely = () => {
     const API_URL = 'http://localhost:5000/api';
 
@@ -169,7 +12,7 @@ const Szemely = () => {
         motor: ''
     });
 
-    // --- Adatlisták tárolása ---
+    // --- Adatlisták tárolása a legördülőkhöz ---
     const [lists, setLists] = useState({
         brands: [],
         models: [],
@@ -177,62 +20,140 @@ const Szemely = () => {
         motors: []
     });
 
-    // Raw (Nyers) API adatok a Jarmuvek táblából
-    const [rawVehicles, setRawVehicles] = useState([]);
+    // --- A teljes adatbázis szótár tárolása a React state-ben ---
+    const [carData, setCarData] = useState({
+        brands: {},
+        models: {},
+        motors: {}
+    });
 
+    const [rawVehicles, setRawVehicles] = useState([]);
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState(null);
+    const [dictionaryLoaded, setDictionaryLoaded] = useState(false);
 
-    // Kezdeti betöltés
+    // Dictionary betöltése az adatbázisból (minden szükséges adat)
+    useEffect(() => {
+        const loadDictionary = async () => {
+            try {
+                // JAVÍTVA: Itt adjuk át a "szemely" paramétert a backendnek!
+                const [brandsRes, modelsRes, motorsRes] = await Promise.all([
+                    axios.get(`${API_URL}/brands/szemely`),
+                    axios.get(`${API_URL}/models/szemely`),
+                    axios.get(`${API_URL}/motors/szemely`)
+                ]);
+
+                const newCarData = {
+                    brands: {},
+                    models: {},
+                    motors: {}
+                };
+
+                // Brands
+                brandsRes.data.forEach(b => {
+                    newCarData.brands[b.id || b.Id] = b.nev || b.Nev;
+                });
+
+                // Models 
+                modelsRes.data.forEach(m => {
+                    newCarData.models[m.id || m.Id] = {
+                        nev: m.modellNev || m.ModellNev,
+                        generacio: m.generacio || m.Generacio,
+                        marka_id: m.markaId || m.MarkaId,
+                        evjarat_tol: m.evjaratTol || m.EvjaratTol,
+                        evjarat_ig: m.evjaratIg || m.EvjaratIg
+                    };
+                });
+
+                // Motors
+                motorsRes.data.forEach(mo => {
+                    newCarData.motors[mo.id || mo.Id] = {
+                        kod: mo.motorKod || mo.MotorKod,
+                        ccm: mo.hengerurtartalom || mo.Hengerurtartalom,
+                        le: mo.teljesitmenyLe || mo.TeljesitmenyLe,
+                        modell_id: mo.modellId || mo.ModellId
+                    };
+                });
+
+                // State frissítése a lekérdezett adatokkal
+                setCarData(newCarData);
+                setDictionaryLoaded(true);
+
+                // Márkák lista beállítása
+                const availableBrands = Object.entries(newCarData.brands).map(([id, name]) => ({
+                    id: id,
+                    nev: name
+                }));
+                setLists(prev => ({ ...prev, brands: availableBrands }));
+
+            } catch (err) {
+                console.error("Dictionary betöltési hiba:", err);
+            }
+        };
+
+        loadDictionary();
+    }, []);
+
+    // Kezdeti betöltés (felhasználó és járművek)
     useEffect(() => {
         const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
         setUser(savedUser);
         fetchBaseVehicles();
     }, []);
 
-    // A C# endpoint teljes jrmuvek() listájának bekérése
     const fetchBaseVehicles = async () => {
         try {
-            const res = await axios.get(`${API_URL}/cars`); 
+            const res = await axios.get(`${API_URL}/cars`);
             if (res.status === 200) {
-                const vehicles = res.data || [];
-                setRawVehicles(vehicles);
-
-                // --- FRONTEND GENERÁLÁS (Csak a személyautók mock listáját állítjuk össze) ---
-                const availableBrands = Object.entries(CAR_DATA_DICTIONARY.brands).map(([id, name]) => ({
-                    id: id,
-                    nev: name
-                }));
-                // Bármi amire rányomhatunk (összes márka betöltése kezdéskor)
-                setLists(prev => ({ ...prev, brands: availableBrands }));
+                setRawVehicles(res.data || []);
             }
         } catch (err) {
             console.error(`Hiba a Járművek lekérésekor:`, err);
         }
     };
 
+    // Évjáratok generálása az adatbázisból 
+    const generateYearsForModel = (modelId) => {
+        const model = carData.models[modelId];
+        if (!model || !model.evjarat_tol || !model.evjarat_ig) {
+            return ['2024', '2023', '2022', '2021', '2020', '2019', '2018'];
+        }
+
+        const res = [];
+        const currentYear = new Date().getFullYear();
+        let endYear = model.evjarat_ig > currentYear ? currentYear : model.evjarat_ig;
+
+        for (let i = endYear; i >= model.evjarat_tol; i--) {
+            res.push(i.toString());
+        }
+        return res;
+    };
+
     // Ha a márka változik
     useEffect(() => {
-        if (selections.brand) {
-            const brandModels = Object.entries(CAR_DATA_DICTIONARY.models)
+        if (selections.brand && dictionaryLoaded) {
+            const brandModels = Object.entries(carData.models)
                 .filter(([id, data]) => data.marka_id.toString() === selections.brand)
-                .map(([id, data]) => ({ id, nev: `${data.nev} (${data.generacio})` })); // Generáció is mehet a névhez
+                .map(([id, data]) => ({ 
+                    id, 
+                    nev: `${data.nev} (${data.generacio})` 
+                }));
 
             setLists(prev => ({ ...prev, models: brandModels, years: [], motors: [] }));
             setSelections(prev => ({ ...prev, model: '', year: '', motor: '' }));
         }
-    }, [selections.brand]);
+    }, [selections.brand, dictionaryLoaded, carData.models]);
 
-    // Ha a modell változik, kiszámítja a lehetséges évjáratokat és lekéri a motorokat
+    // Ha a modell változik
     useEffect(() => {
-        if (selections.model) {
-            const modelMotors = Object.entries(CAR_DATA_DICTIONARY.motors)
+        if (selections.model && dictionaryLoaded) {
+            const modelMotors = Object.entries(carData.motors)
                 .filter(([id, data]) => data.modell_id.toString() === selections.model);
-            
+
             setLists(prev => ({ 
                 ...prev, 
-                years: _generateYearsForModel(parseInt(selections.model)),
+                years: generateYearsForModel(parseInt(selections.model)),
                 motors: modelMotors.map(([id, data]) => ({ 
                     id, 
                     kod: data.kod, 
@@ -243,43 +164,39 @@ const Szemely = () => {
             
             setSelections(prev => ({ ...prev, year: '', motor: '' }));
         }
-    }, [selections.model]);
+    }, [selections.model, dictionaryLoaded, carData.motors]);
 
-    // Termék kiválasztása a backend API termékeiből
+    // Termék keresés
     const handleSearch = async () => {
+        if (!dictionaryLoaded) {
+            alert('Az adatok még töltődnek, kérlek várj...');
+            return;
+        }
         if (!selections.model) return alert('Kérjük, válasszon ki egy modellt!');
 
         setLoading(true);
         try {
             const res = await axios.get(`${API_URL}/products`);
-            if (res.status === 200) {
-                const fullList = res.data || [];
-                
-                // Szűrés 1: Személyautó alkatrészek (kategória_id 1-13)
-                let filtered = fullList.filter(p => {
-                    const kategId = p.kategoriaId || p.KategoriaId;
-                    return kategId && kategId < 14;
+            let fullList = res.data || [];
+
+            // Szűrés 1: Személyautó alkatrészek (1-13)
+            let filtered = fullList.filter(p => {
+                const kategId = p.kategoriaId || p.KategoriaId;
+                return kategId && kategId < 14;
+            });
+
+            // Szűrés 2: Modell generáció alapján
+            const selectedModelData = carData.models[selections.model];
+            if (selectedModelData && selectedModelData.generacio) {
+                const generacio = selectedModelData.generacio.toUpperCase();
+                filtered = filtered.filter(p => {
+                    const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
+                    const nev = String(p.nev || p.Nev || '').toUpperCase();
+                    return cikkszam.includes(generacio) || nev.includes(generacio);
                 });
-
-                // Szűrés 2: Modell generáció alapján (pl. E90, F30, G20)
-                if (selections.model) {
-                    const selectedModelData = CAR_DATA_DICTIONARY.models[selections.model];
-                    if (selectedModelData && selectedModelData.generacio) {
-                        const generacio = selectedModelData.generacio.toUpperCase();
-                        // A cikkszám vagy név tartalmazza a generációt
-                        filtered = filtered.filter(p => {
-                            const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
-                            const nev = String(p.nev || p.Nev || '').toUpperCase();
-                            return cikkszam.includes(generacio) || nev.includes(generacio);
-                        });
-                    }
-                }
-
-                setProducts(filtered);
-            } else {
-                setProducts([]);
             }
-            
+
+            setProducts(filtered);
         } catch (err) {
             console.error("Keresési hiba:", err);
             setProducts([]);
@@ -289,7 +206,6 @@ const Szemely = () => {
         }
     };
 
-    // JAVÍTOTT KOSÁRBA TÉTEL (Backend DTO-hoz igazítva)
     const addToCart = async (productId) => {
         if (!user || !user.id) return alert('A vásárláshoz be kell jelentkeznie!');
         
@@ -315,7 +231,6 @@ const Szemely = () => {
         }
     };
 
-    // Egységesített kép-útvonal generáló
     const getImageUrl = (product) => {
         const path = product.kepUrl || product.KepUrl || product.kep_url;
         if (!path) return "https://placehold.co/400x300?text=Nincs+Kép";
@@ -403,7 +318,6 @@ const Szemely = () => {
                 </div>
             </section>
 
-            {/* RESULTS GRID */}
             <main className="max-w-7xl mx-auto px-4 py-12">
                 {loading ? (
                     <div className="flex justify-center py-20">

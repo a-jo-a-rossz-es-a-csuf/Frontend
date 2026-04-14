@@ -1,85 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Kliens oldali (Mock) adatbázis a valós autoalkatresz_db.sql alapján (Teherautók)
-const TRUCK_DATA_DICTIONARY = {
-    brands: {
-        4: 'MAN',
-        5: 'Scania'
-    },
-    models: {
-        52: { nev: 'TGX 1. gen', gen: '1. gen', marka_id: 4 },
-        53: { nev: 'TGX 2. gen', gen: '2. gen', marka_id: 4 },
-        54: { nev: 'TGS 1. gen', gen: '1. gen', marka_id: 4 },
-        55: { nev: 'TGS 2. gen', gen: '2. gen', marka_id: 4 },
-        56: { nev: 'TGM', gen: '', marka_id: 4 },
-        57: { nev: 'TGL', gen: '', marka_id: 4 },
-        58: { nev: 'R-series R', gen: 'R', marka_id: 5 },
-        59: { nev: 'R-series New R', gen: 'New R', marka_id: 5 },
-        60: { nev: 'S-series', gen: '', marka_id: 5 },
-        61: { nev: 'G-series', gen: '', marka_id: 5 },
-        62: { nev: 'P-series', gen: '', marka_id: 5 },
-        63: { nev: 'L-series', gen: '', marka_id: 5 }
-    },
-    motors: {
-        22: { kod: 'D2676', ccm: 12419, le: 440, modell_id: 52 },
-        23: { kod: 'D2676', ccm: 12419, le: 480, modell_id: 52 },
-        24: { kod: 'D2676', ccm: 12419, le: 510, modell_id: 53 },
-        25: { kod: 'DC13', ccm: 12700, le: 450, modell_id: 58 },
-        26: { kod: 'DC13', ccm: 12700, le: 500, modell_id: 59 },
-        27: { kod: 'DC16', ccm: 16400, le: 580, modell_id: 59 }
-    }
-};
-
-const _generateYearsForTruckModel = (modelId) => {
-    // Alapértelmezett évek, ha valami nem stimmel
-    const defaultYears = ['2025', '2024', '2023', '2022', '2021', '2020'];
-    const modelMap = {
-        52: { tol: 2007, ig: 2020 },
-        53: { tol: 2020, ig: 2025 },
-        54: { tol: 2007, ig: 2020 },
-        55: { tol: 2020, ig: 2025 },
-        56: { tol: 2007, ig: 2025 },
-        57: { tol: 2005, ig: 2025 },
-        58: { tol: 2004, ig: 2016 },
-        59: { tol: 2016, ig: 2025 },
-        60: { tol: 2016, ig: 2025 },
-        61: { tol: 2009, ig: 2025 },
-        62: { tol: 2004, ig: 2025 },
-        63: { tol: 2018, ig: 2025 },
-    };
-    if (modelMap[modelId]) {
-        const { tol, ig } = modelMap[modelId];
-        const res = [];
-        let currentYear = new Date().getFullYear();
-        let endYear = ig > currentYear ? currentYear : ig;
-
-        for (let i = endYear; i >= tol; i--) {
-            res.push(i.toString());
-        }
-        return res;
-    }
-    return defaultYears;
-};
-
 const Teher = () => {
     const API_URL = 'http://localhost:5000/api';
-
-    // Modell ID → Alkatrészek kódja mapping
-    const TRUCK_MODEL_CODES = {
-        52: "TGX", // TGX 1. gen
-        53: "TGX", // TGX 2. gen
-        54: "TGS", // TGS 1. gen
-        55: "TGS", // TGS 2. gen
-        56: "TGM", // TGM
-        57: "TGL", // TGL
-        58: "R",   // R-series R
-        59: "R",   // R-series New R
-        60: "S",   // S-series
-        61: "G",   // G-series
-        62: "P",   // P-series
-        63: "L"    // L-series
-    };
 
     // --- Választási állapotok ---
     const [selections, setSelections] = useState({
@@ -89,7 +12,7 @@ const Teher = () => {
         motor: ''
     });
 
-    // --- Adatlisták tárolása ---
+    // --- Adatlisták tárolása a legördülőkhöz ---
     const [lists, setLists] = useState({
         brands: [],
         models: [],
@@ -97,43 +20,121 @@ const Teher = () => {
         motors: []
     });
 
+    // --- A teljes adatbázis szótár tárolása a React state-ben ---
+    const [carData, setCarData] = useState({
+        brands: {},
+        models: {},
+        motors: {}
+    });
+
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState(null);
+    const [dictionaryLoaded, setDictionaryLoaded] = useState(false);
 
-    // Kezdeti betöltés
+    // Dictionary betöltése az adatbázisból (TEHERAUTÓKHOZ)
+    useEffect(() => {
+        const loadDictionary = async () => {
+            try {
+                const [brandsRes, modelsRes, motorsRes] = await Promise.all([
+                    axios.get(`${API_URL}/brands/teher`),
+                    axios.get(`${API_URL}/models/teher`),
+                    axios.get(`${API_URL}/motors/teher`)
+                ]);
+
+                const newCarData = {
+                    brands: {},
+                    models: {},
+                    motors: {}
+                };
+
+                // Brands
+                brandsRes.data.forEach(b => {
+                    newCarData.brands[b.id || b.Id] = b.nev || b.Nev;
+                });
+
+                // Models 
+                modelsRes.data.forEach(m => {
+                    newCarData.models[m.id || m.Id] = {
+                        nev: m.modellNev || m.ModellNev,
+                        generacio: m.generacio || m.Generacio,
+                        marka_id: m.markaId || m.MarkaId,
+                        evjarat_tol: m.evjaratTol || m.EvjaratTol,
+                        evjarat_ig: m.evjaratIg || m.EvjaratIg
+                    };
+                });
+
+                // Motors
+                motorsRes.data.forEach(mo => {
+                    newCarData.motors[mo.id || mo.Id] = {
+                        kod: mo.motorKod || mo.MotorKod,
+                        ccm: mo.hengerurtartalom || mo.Hengerurtartalom,
+                        le: mo.teljesitmenyLe || mo.TeljesitmenyLe,
+                        modell_id: mo.modellId || mo.ModellId
+                    };
+                });
+
+                setCarData(newCarData);
+                setDictionaryLoaded(true);
+
+                // Márkák lista beállítása
+                const availableBrands = Object.entries(newCarData.brands).map(([id, name]) => ({
+                    id: id,
+                    nev: name
+                }));
+                setLists(prev => ({ ...prev, brands: availableBrands }));
+
+            } catch (err) {
+                console.error("Dictionary betöltési hiba:", err);
+            }
+        };
+
+        loadDictionary();
+    }, []);
+
     useEffect(() => {
         const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
         setUser(savedUser);
-        
-        // --- FRONTEND GENERÁLÁS (Teherautókhoz) ---
-        const availableBrands = Object.entries(TRUCK_DATA_DICTIONARY.brands).map(([id, name]) => ({
-             id, nev: name
-        }));
-        setLists(prev => ({ ...prev, brands: availableBrands }));
     }, []);
 
-    // Ha a márka változik
+    const generateYearsForModel = (modelId) => {
+        const model = carData.models[modelId];
+        if (!model || !model.evjarat_tol || !model.evjarat_ig) {
+            return ['2025', '2024', '2023', '2022', '2021', '2020'];
+        }
+
+        const res = [];
+        const currentYear = new Date().getFullYear();
+        let endYear = model.evjarat_ig > currentYear ? currentYear : model.evjarat_ig;
+
+        for (let i = endYear; i >= model.evjarat_tol; i--) {
+            res.push(i.toString());
+        }
+        return res;
+    };
+
     useEffect(() => {
-        if (selections.brand) {
-            const brandModels = Object.entries(TRUCK_DATA_DICTIONARY.models)
+        if (selections.brand && dictionaryLoaded) {
+            const brandModels = Object.entries(carData.models)
                 .filter(([id, data]) => data.marka_id.toString() === selections.brand)
-                .map(([id, data]) => ({ id, nev: data.nev }));
+                .map(([id, data]) => ({ 
+                    id, 
+                    nev: data.generacio ? `${data.nev} (${data.generacio})` : data.nev 
+                }));
 
             setLists(prev => ({ ...prev, models: brandModels, years: [], motors: [] }));
             setSelections(prev => ({ ...prev, model: '', year: '', motor: '' }));
         }
-    }, [selections.brand]);
+    }, [selections.brand, dictionaryLoaded, carData.models]);
 
-    // Ha a modell változik
     useEffect(() => {
-        if (selections.model) {
-            const modelMotors = Object.entries(TRUCK_DATA_DICTIONARY.motors)
+        if (selections.model && dictionaryLoaded) {
+            const modelMotors = Object.entries(carData.motors)
                 .filter(([id, data]) => data.modell_id.toString() === selections.model);
             
             setLists(prev => ({ 
                 ...prev, 
-                years: _generateYearsForTruckModel(parseInt(selections.model)),
+                years: generateYearsForModel(parseInt(selections.model)),
                 motors: modelMotors.map(([id, data]) => ({ 
                     id, 
                     kod: data.kod, 
@@ -144,10 +145,14 @@ const Teher = () => {
 
             setSelections(prev => ({ ...prev, year: '', motor: '' }));
         }
-    }, [selections.model]);
+    }, [selections.model, dictionaryLoaded, carData.motors]);
 
     // Termék keresés
     const handleSearch = async () => {
+        if (!dictionaryLoaded) {
+            alert('Az adatok még töltődnek, kérlek várj...');
+            return;
+        }
         if (!selections.model) return alert('Kérjük, válasszon ki egy modellt!');
 
         setLoading(true);
@@ -160,16 +165,20 @@ const Teher = () => {
                 // Szűrés 1: Teherautók kategória ID-ja 14
                 let filtered = safeProducts.filter(p => (p.kategoriaId || p.KategoriaId) === 14);
                 
-                // Szűrés 2: Modell alapján a cikkszámban keresünk
-                const selectedModelId = parseInt(selections.model);
-                const modelCode = TRUCK_MODEL_CODES[selectedModelId];
-                
-                if (modelCode) {
+                // Szűrés 2: Szigorú cikkszám formátum szűrés
+                const selectedModelData = carData.models[selections.model];
+                if (selectedModelData) {
+                    // Dinamikusan kinyerjük az alap modellt a névből (pl. "TGX 1. gen" -> "TGX", "R-series" -> "R")
+                    const nevSzavak = selectedModelData.nev ? selectedModelData.nev.toUpperCase().split(/[- ]/) : [];
+                    const modelCode = nevSzavak.length > 0 ? nevSzavak[0] : '';
+
                     filtered = filtered.filter(p => {
-                        const cikkszam = String(p.cikkszam || p.Cikkszam || '');
-                        // Az alkatrészek formátuma: "MAN-TGX-FB01" vagy "SCAN-R-FB01"
-                        // Split by "-" és az 2. elem ellenőrzése
+                        const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
                         const parts = cikkszam.split('-');
+                        
+                        // Csak és kizárólag akkor engedjük át, ha a cikkszám második része pontosan a modellkód
+                        // Példa: MAN-TGX-01 -> parts[1] === "TGX"
+                        // Példa: SCAN-R-01 -> parts[1] === "R"
                         return parts.length >= 2 && parts[1] === modelCode;
                     });
                 }
@@ -188,13 +197,14 @@ const Teher = () => {
         }
     };
 
-    // JAVÍTOTT KOSÁRBA TÉTEL (Backend DTO-hoz igazítva)
     const addToCart = async (productId) => {
-        if (!user || !user.id) return alert('A vásárláshoz be kell jelentkeznie!');
+        const currentUserId = user?.id || user?.Id;
+        
+        if (!currentUserId) return alert('A vásárláshoz be kell jelentkeznie!');
         
         try {
             const payload = {
-                userId: parseInt(user.id),
+                felhasznaloId: parseInt(currentUserId),
                 alkatreszId: parseInt(productId),
                 olajId: null,
                 mennyiseg: 1

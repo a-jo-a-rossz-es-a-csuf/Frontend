@@ -1,77 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Kliens oldali (Mock) adatbázis a valós autoalkatresz_db.sql alapján (Motorok)
-const MOTORCYCLE_DATA_DICTIONARY = {
-    brands: {
-        6: 'Honda',
-        7: 'Yamaha'
-    },
-    models: {
-        64: { nev: 'CBR600RR', marka_id: 6 },
-        65: { nev: 'CBR1000RR Fireblade', marka_id: 6 },
-        66: { nev: 'CB500F', marka_id: 6 },
-        67: { nev: 'CB650R', marka_id: 6 },
-        68: { nev: 'Africa Twin CRF1100L', marka_id: 6 },
-        69: { nev: 'NC750X', marka_id: 6 },
-        70: { nev: 'Forza 350', marka_id: 6 },
-        71: { nev: 'PCX125', marka_id: 6 },
-        72: { nev: 'YZF-R6', marka_id: 7 },
-        73: { nev: 'YZF-R1', marka_id: 7 },
-        74: { nev: 'MT-07', marka_id: 7 },
-        75: { nev: 'MT-09', marka_id: 7 },
-        76: { nev: 'Tenere 700', marka_id: 7 },
-        77: { nev: 'Tracer 9', marka_id: 7 },
-        78: { nev: 'XMAX 300', marka_id: 7 },
-        79: { nev: 'NMAX 125', marka_id: 7 }
-    },
-    motors: {
-        28: { kod: 'PC40E', ccm: 599, le: 120, modell_id: 64 },
-        29: { kod: 'SC82E', ccm: 999, le: 217, modell_id: 65 },
-        30: { kod: 'PC60E', ccm: 471, le: 47, modell_id: 66 },
-        31: { kod: 'RH03E', ccm: 649, le: 95, modell_id: 67 },
-        32: { kod: 'RJ27', ccm: 599, le: 118, modell_id: 72 },
-        33: { kod: 'RN65', ccm: 998, le: 200, modell_id: 73 },
-        34: { kod: 'RM33', ccm: 689, le: 73, modell_id: 74 },
-        35: { kod: 'RN69', ccm: 890, le: 119, modell_id: 75 }
-    }
-};
-
-const _generateYearsForMotorModel = (modelId) => {
-    // Alapértelmezett évek, ha valami nem stimmel
-    const defaultYears = ['2025', '2024', '2023', '2022', '2021', '2020'];
-    const modelMap = {
-        64: { tol: 2003, ig: 2025 },
-        65: { tol: 2004, ig: 2025 },
-        66: { tol: 2013, ig: 2025 },
-        67: { tol: 2019, ig: 2025 },
-        68: { tol: 2016, ig: 2025 },
-        69: { tol: 2012, ig: 2025 },
-        70: { tol: 2018, ig: 2025 },
-        71: { tol: 2010, ig: 2025 },
-        72: { tol: 1999, ig: 2025 },
-        73: { tol: 1998, ig: 2025 },
-        74: { tol: 2014, ig: 2025 },
-        75: { tol: 2013, ig: 2025 },
-        76: { tol: 2019, ig: 2025 },
-        77: { tol: 2015, ig: 2025 },
-        78: { tol: 2017, ig: 2025 },
-        79: { tol: 2015, ig: 2025 },
-    };
-    if (modelMap[modelId]) {
-        const { tol, ig } = modelMap[modelId];
-        const res = [];
-        let currentYear = new Date().getFullYear();
-        let endYear = ig > currentYear ? currentYear : ig;
-
-        for (let i = endYear; i >= tol; i--) {
-            res.push(i.toString());
-        }
-        return res;
-    }
-    return defaultYears;
-};
-
 const Motor = () => {
     const API_URL = 'http://localhost:5000/api';
 
@@ -83,7 +12,7 @@ const Motor = () => {
         motor: ''
     });
 
-    // --- Adatlisták tárolása ---
+    // --- Adatlisták tárolása a legördülőkhöz ---
     const [lists, setLists] = useState({
         brands: [],
         models: [],
@@ -91,43 +20,124 @@ const Motor = () => {
         motors: []
     });
 
+    // --- A teljes adatbázis szótár tárolása a React state-ben ---
+    const [carData, setCarData] = useState({
+        brands: {},
+        models: {},
+        motors: {}
+    });
+
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(false);
     const [user, setUser] = useState(null);
+    const [dictionaryLoaded, setDictionaryLoaded] = useState(false);
 
-    // Kezdeti betöltés
+    // Dictionary betöltése az adatbázisból (minden szükséges adat - MOTOROKHOZ)
+    useEffect(() => {
+        const loadDictionary = async () => {
+            try {
+                // Kifejezetten a "motor" típusú adatokat kérjük le a backendtől
+                const [brandsRes, modelsRes, motorsRes] = await Promise.all([
+                    axios.get(`${API_URL}/brands/motor`),
+                    axios.get(`${API_URL}/models/motor`),
+                    axios.get(`${API_URL}/motors/motor`)
+                ]);
+
+                const newCarData = {
+                    brands: {},
+                    models: {},
+                    motors: {}
+                };
+
+                // Brands
+                brandsRes.data.forEach(b => {
+                    newCarData.brands[b.id || b.Id] = b.nev || b.Nev;
+                });
+
+                // Models 
+                modelsRes.data.forEach(m => {
+                    newCarData.models[m.id || m.Id] = {
+                        nev: m.modellNev || m.ModellNev,
+                        generacio: m.generacio || m.Generacio,
+                        marka_id: m.markaId || m.MarkaId,
+                        evjarat_tol: m.evjaratTol || m.EvjaratTol,
+                        evjarat_ig: m.evjaratIg || m.EvjaratIg
+                    };
+                });
+
+                // Motors
+                motorsRes.data.forEach(mo => {
+                    newCarData.motors[mo.id || mo.Id] = {
+                        kod: mo.motorKod || mo.MotorKod,
+                        ccm: mo.hengerurtartalom || mo.Hengerurtartalom,
+                        le: mo.teljesitmenyLe || mo.TeljesitmenyLe,
+                        modell_id: mo.modellId || mo.ModellId
+                    };
+                });
+
+                // State frissítése a lekérdezett adatokkal
+                setCarData(newCarData);
+                setDictionaryLoaded(true);
+
+                // Márkák lista beállítása
+                const availableBrands = Object.entries(newCarData.brands).map(([id, name]) => ({
+                    id: id,
+                    nev: name
+                }));
+                setLists(prev => ({ ...prev, brands: availableBrands }));
+
+            } catch (err) {
+                console.error("Dictionary betöltési hiba:", err);
+            }
+        };
+
+        loadDictionary();
+    }, []);
+
+    // Kezdeti betöltés (felhasználó)
     useEffect(() => {
         const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
         setUser(savedUser);
-        
-        // --- FRONTEND GENERÁLÁS (Motorokhoz) ---
-        const availableBrands = Object.entries(MOTORCYCLE_DATA_DICTIONARY.brands).map(([id, name]) => ({
-             id, nev: name
-        }));
-        setLists(prev => ({ ...prev, brands: availableBrands }));
     }, []);
+
+    // Évjáratok generálása dinamikusan az adatbázisból
+    const generateYearsForModel = (modelId) => {
+        const model = carData.models[modelId];
+        if (!model || !model.evjarat_tol || !model.evjarat_ig) {
+            return ['2025', '2024', '2023', '2022', '2021', '2020'];
+        }
+
+        const res = [];
+        const currentYear = new Date().getFullYear();
+        let endYear = model.evjarat_ig > currentYear ? currentYear : model.evjarat_ig;
+
+        for (let i = endYear; i >= model.evjarat_tol; i--) {
+            res.push(i.toString());
+        }
+        return res;
+    };
 
     // Ha a márka változik
     useEffect(() => {
-        if (selections.brand) {
-            const brandModels = Object.entries(MOTORCYCLE_DATA_DICTIONARY.models)
+        if (selections.brand && dictionaryLoaded) {
+            const brandModels = Object.entries(carData.models)
                 .filter(([id, data]) => data.marka_id.toString() === selections.brand)
                 .map(([id, data]) => ({ id, nev: data.nev }));
 
             setLists(prev => ({ ...prev, models: brandModels, years: [], motors: [] }));
             setSelections(prev => ({ ...prev, model: '', year: '', motor: '' }));
         }
-    }, [selections.brand]);
+    }, [selections.brand, dictionaryLoaded, carData.models]);
 
     // Ha a modell változik
     useEffect(() => {
-        if (selections.model) {
-            const modelMotors = Object.entries(MOTORCYCLE_DATA_DICTIONARY.motors)
+        if (selections.model && dictionaryLoaded) {
+            const modelMotors = Object.entries(carData.motors)
                 .filter(([id, data]) => data.modell_id.toString() === selections.model);
             
             setLists(prev => ({ 
                 ...prev, 
-                years: _generateYearsForMotorModel(parseInt(selections.model)),
+                years: generateYearsForModel(parseInt(selections.model)),
                 motors: modelMotors.map(([id, data]) => ({ 
                     id, 
                     kod: data.kod, 
@@ -137,10 +147,14 @@ const Motor = () => {
             }));
             setSelections(prev => ({ ...prev, year: '', motor: '' }));
         }
-    }, [selections.model]);
+    }, [selections.model, dictionaryLoaded, carData.motors]);
 
     // Termék keresés
     const handleSearch = async () => {
+        if (!dictionaryLoaded) {
+            alert('Az adatok még töltődnek, kérlek várj...');
+            return;
+        }
         if (!selections.model) return alert('Kérjük, válasszon ki egy modellt!');
 
         setLoading(true);
@@ -153,9 +167,9 @@ const Motor = () => {
                 // Szűrés 1: Motorok kategória ID-ja 15
                 let filtered = safeProducts.filter(p => (p.kategoriaId || p.KategoriaId) === 15);
                 
-                // Szűrés 2: Modell alapján a cikkszámban keresünk
-                if (selections.model && MOTORCYCLE_DATA_DICTIONARY.models[selections.model]) {
-                    const modelName = MOTORCYCLE_DATA_DICTIONARY.models[selections.model].nev.toUpperCase();
+                // Szűrés 2: Modell alapján a cikkszámban/névben keresünk
+                if (selections.model && carData.models[selections.model]) {
+                    const modelName = carData.models[selections.model].nev.toUpperCase();
                     filtered = filtered.filter(p => {
                         const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
                         const nev = String(p.nev || p.Nev || '').toUpperCase();
@@ -177,13 +191,14 @@ const Motor = () => {
         }
     };
 
-    // JAVÍTOTT KOSÁRBA TÉTEL (Backend DTO-hoz igazítva)
     const addToCart = async (productId) => {
-        if (!user || !user.id) return alert('A vásárláshoz be kell jelentkeznie!');
+        const currentUserId = user?.id || user?.Id;
+        
+        if (!currentUserId) return alert('A vásárláshoz be kell jelentkeznie!');
         
         try {
             const payload = {
-                userId: parseInt(user.id),
+                felhasznaloId: parseInt(currentUserId), 
                 alkatreszId: parseInt(productId),
                 olajId: null,
                 mennyiseg: 1

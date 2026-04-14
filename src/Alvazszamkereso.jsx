@@ -1,81 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// Mock adatbázis - TELJES, az összes járműadattal
-const CAR_DATA_DICTIONARY = {
-    brands: {
-        1: { nev: 'BMW', tipus: 'Személyautók' },
-        2: { nev: 'Audi', tipus: 'Személyautók' },
-        3: { nev: 'Mercedes-Benz', tipus: 'Személyautók' }
-    },
-    models: {
-        1: { nev: '1-es sorozat', generacio: 'E87', marka_id: 1, evjarat_tol: 2003, evjarat_ig: 2013 },
-        2: { nev: '1-es sorozat', generacio: 'F20', marka_id: 1, evjarat_tol: 2011, evjarat_ig: 2020 },
-        3: { nev: '3-as sorozat', generacio: 'E46', marka_id: 1, evjarat_tol: 1998, evjarat_ig: 2005 },
-        4: { nev: '3-as sorozat', generacio: 'E90', marka_id: 1, evjarat_tol: 2005, evjarat_ig: 2012 },
-        5: { nev: '3-as sorozat', generacio: 'F30', marka_id: 1, evjarat_tol: 2012, evjarat_ig: 2018 },
-        6: { nev: '3-as sorozat', generacio: 'G20', marka_id: 1, evjarat_tol: 2019, evjarat_ig: 2024 },
-        7: { nev: '5-ös sorozat', generacio: 'E39', marka_id: 1, evjarat_tol: 1996, evjarat_ig: 2003 },
-        8: { nev: '5-ös sorozat', generacio: 'E60', marka_id: 1, evjarat_tol: 2003, evjarat_ig: 2010 },
-        9: { nev: '5-ös sorozat', generacio: 'F10', marka_id: 1, evjarat_tol: 2010, evjarat_ig: 2017 },
-        10: { nev: '5-ös sorozat', generacio: 'G30', marka_id: 1, evjarat_tol: 2017, evjarat_ig: 2024 },
-        11: { nev: 'X3', generacio: 'E83', marka_id: 1, evjarat_tol: 2003, evjarat_ig: 2010 },
-        12: { nev: 'X3', generacio: 'F25', marka_id: 1, evjarat_tol: 2010, evjarat_ig: 2017 },
-        13: { nev: 'X3', generacio: 'G01', marka_id: 1, evjarat_tol: 2017, evjarat_ig: 2024 },
-        14: { nev: 'X5', generacio: 'E53', marka_id: 1, evjarat_tol: 1999, evjarat_ig: 2006 },
-        15: { nev: 'X5', generacio: 'E70', marka_id: 1, evjarat_tol: 2006, evjarat_ig: 2013 },
-        16: { nev: 'X5', generacio: 'F15', marka_id: 1, evjarat_tol: 2013, evjarat_ig: 2018 },
-        17: { nev: 'X5', generacio: 'G05', marka_id: 1, evjarat_tol: 2018, evjarat_ig: 2024 },
-        18: { nev: 'A3', generacio: '8L', marka_id: 2, evjarat_tol: 1996, evjarat_ig: 2003 },
-        19: { nev: 'A3', generacio: '8P', marka_id: 2, evjarat_tol: 2003, evjarat_ig: 2012 },
-        20: { nev: 'A3', generacio: '8V', marka_id: 2, evjarat_tol: 2012, evjarat_ig: 2020 },
-        21: { nev: 'A3', generacio: '8Y', marka_id: 2, evjarat_tol: 2020, evjarat_ig: 2024 },
-        22: { nev: 'A4', generacio: 'B5', marka_id: 2, evjarat_tol: 1994, evjarat_ig: 2001 },
-        23: { nev: 'A4', generacio: 'B6', marka_id: 2, evjarat_tol: 2000, evjarat_ig: 2004 },
-        24: { nev: 'A4', generacio: 'B7', marka_id: 2, evjarat_tol: 2004, evjarat_ig: 2008 },
-        25: { nev: 'A4', generacio: 'B8', marka_id: 2, evjarat_tol: 2008, evjarat_ig: 2015 },
-        26: { nev: 'A4', generacio: 'B9', marka_id: 2, evjarat_tol: 2015, evjarat_ig: 2024 },
-        27: { nev: 'A6', generacio: 'C5', marka_id: 2, evjarat_tol: 1997, evjarat_ig: 2004 },
-        28: { nev: 'A6', generacio: 'C6', marka_id: 2, evjarat_tol: 2004, evjarat_ig: 2011 },
-        29: { nev: 'A6', generacio: 'C7', marka_id: 2, evjarat_tol: 2011, evjarat_ig: 2018 },
-        30: { nev: 'A6', generacio: 'C8', marka_id: 2, evjarat_tol: 2018, evjarat_ig: 2024 },
-        31: { nev: 'Q5', generacio: '8R', marka_id: 2, evjarat_tol: 2008, evjarat_ig: 2017 },
-        32: { nev: 'Q5', generacio: 'FY', marka_id: 2, evjarat_tol: 2017, evjarat_ig: 2024 },
-        35: { nev: 'A-osztály', generacio: 'W169', marka_id: 3, evjarat_tol: 2004, evjarat_ig: 2012 },
-        36: { nev: 'A-osztály', generacio: 'W176', marka_id: 3, evjarat_tol: 2012, evjarat_ig: 2018 },
-        37: { nev: 'A-osztály', generacio: 'W177', marka_id: 3, evjarat_tol: 2018, evjarat_ig: 2024 },
-        38: { nev: 'C-osztály', generacio: 'W203', marka_id: 3, evjarat_tol: 2000, evjarat_ig: 2007 },
-        39: { nev: 'C-osztály', generacio: 'W204', marka_id: 3, evjarat_tol: 2007, evjarat_ig: 2014 },
-        40: { nev: 'C-osztály', generacio: 'W205', marka_id: 3, evjarat_tol: 2014, evjarat_ig: 2021 },
-        41: { nev: 'C-osztály', generacio: 'W206', marka_id: 3, evjarat_tol: 2021, evjarat_ig: 2024 },
-        42: { nev: 'E-osztály', generacio: 'W213', marka_id: 3, evjarat_tol: 2016, evjarat_ig: 2024 },
-        43: { nev: 'GLC', generacio: 'X253', marka_id: 3, evjarat_tol: 2015, evjarat_ig: 2024 }
-    },
-    motors: {
-        1: { kod: 'N46B20', ccm: 1995, le: 150, teljesitmeny_kw: 110, modell_id: 4, uzemanyag: 'benzin' },
-        2: { kod: 'N52B25', ccm: 2497, le: 218, teljesitmeny_kw: 160, modell_id: 4, uzemanyag: 'benzin' },
-        3: { kod: 'N47D20', ccm: 1995, le: 177, teljesitmeny_kw: 130, modell_id: 4, uzemanyag: 'dizel' },
-        4: { kod: 'N20B20', ccm: 1997, le: 184, teljesitmeny_kw: 135, modell_id: 5, uzemanyag: 'benzin' },
-        5: { kod: 'B48B20', ccm: 1998, le: 252, teljesitmeny_kw: 185, modell_id: 5, uzemanyag: 'benzin' },
-        6: { kod: 'B47D20', ccm: 1995, le: 190, teljesitmeny_kw: 140, modell_id: 5, uzemanyag: 'dizel' },
-        7: { kod: 'N20B20', ccm: 1997, le: 184, teljesitmeny_kw: 135, modell_id: 9, uzemanyag: 'benzin' },
-        8: { kod: 'N55B30', ccm: 2979, le: 306, teljesitmeny_kw: 225, modell_id: 9, uzemanyag: 'benzin' },
-        9: { kod: 'N57D30', ccm: 2993, le: 258, teljesitmeny_kw: 190, modell_id: 9, uzemanyag: 'dizel' },
-        10: { kod: 'CDNC', ccm: 1984, le: 180, teljesitmeny_kw: 132, modell_id: 25, uzemanyag: 'benzin' },
-        11: { kod: 'CAGA', ccm: 1968, le: 143, teljesitmeny_kw: 105, modell_id: 25, uzemanyag: 'dizel' },
-        12: { kod: 'CAHA', ccm: 1968, le: 170, teljesitmeny_kw: 125, modell_id: 25, uzemanyag: 'dizel' },
-        13: { kod: 'CYRB', ccm: 1984, le: 190, teljesitmeny_kw: 140, modell_id: 26, uzemanyag: 'benzin' },
-        14: { kod: 'DCPC', ccm: 1968, le: 150, teljesitmeny_kw: 110, modell_id: 26, uzemanyag: 'dizel' },
-        15: { kod: 'DETA', ccm: 1968, le: 190, teljesitmeny_kw: 140, modell_id: 26, uzemanyag: 'dizel' },
-        16: { kod: 'M274', ccm: 1991, le: 184, teljesitmeny_kw: 135, modell_id: 40, uzemanyag: 'benzin' },
-        17: { kod: 'M276', ccm: 2996, le: 333, teljesitmeny_kw: 245, modell_id: 40, uzemanyag: 'benzin' },
-        18: { kod: 'OM654', ccm: 1950, le: 194, teljesitmeny_kw: 143, modell_id: 40, uzemanyag: 'dizel' },
-        19: { kod: 'M264', ccm: 1991, le: 197, teljesitmeny_kw: 145, modell_id: 44, uzemanyag: 'benzin' },
-        20: { kod: 'M276', ccm: 2996, le: 333, teljesitmeny_kw: 245, modell_id: 44, uzemanyag: 'benzin' },
-        21: { kod: 'OM654', ccm: 1950, le: 194, teljesitmeny_kw: 143, modell_id: 44, uzemanyag: 'dizel' }
-    }
-};
-
 const AlvazszamKereso = () => {
     const API_URL = 'http://localhost:5000/api';
     const [vin, setVin] = useState('');
@@ -83,6 +8,86 @@ const AlvazszamKereso = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [user, setUser] = useState(null);
+    
+    const [dictionaryLoaded, setDictionaryLoaded] = useState(false);
+    
+    // A teljes adatbázis szótár tárolása a React state-ben
+    const [carData, setCarData] = useState({
+        brands: {},
+        models: {},
+        motors: {}
+    });
+
+    // Dictionary betöltése az adatbázisból
+    useEffect(() => {
+        const loadDictionary = async () => {
+            try {
+                // Mivel az alvázszám keresőnek minden járművet ismernie kell, 
+                // lekérjük a személy, teher és motor adatokat is, és összefűzzük őket.
+                const endpoints = [
+                    axios.get(`${API_URL}/brands/szemely`).catch(() => ({ data: [] })),
+                    axios.get(`${API_URL}/models/szemely`).catch(() => ({ data: [] })),
+                    axios.get(`${API_URL}/motors/szemely`).catch(() => ({ data: [] })),
+                    
+                    axios.get(`${API_URL}/brands/teher`).catch(() => ({ data: [] })),
+                    axios.get(`${API_URL}/models/teher`).catch(() => ({ data: [] })),
+                    axios.get(`${API_URL}/motors/teher`).catch(() => ({ data: [] })),
+                    
+                    axios.get(`${API_URL}/brands/motor`).catch(() => ({ data: [] })),
+                    axios.get(`${API_URL}/models/motor`).catch(() => ({ data: [] })),
+                    axios.get(`${API_URL}/motors/motor`).catch(() => ({ data: [] }))
+                ];
+
+                const results = await Promise.all(endpoints);
+
+                // Összesítjük a 3 kategória adatait
+                const allBrands = [...results[0].data, ...results[3].data, ...results[6].data];
+                const allModels = [...results[1].data, ...results[4].data, ...results[7].data];
+                const allMotors = [...results[2].data, ...results[5].data, ...results[8].data];
+
+                const newCarData = { brands: {}, models: {}, motors: {} };
+
+                // Brands
+                allBrands.forEach(b => {
+                    newCarData.brands[b.id || b.Id] = {
+                        nev: b.nev || b.Nev,
+                        tipus: b.tipus || b.Tipus
+                    };
+                });
+
+                // Models
+                allModels.forEach(m => {
+                    newCarData.models[m.id || m.Id] = {
+                        nev: m.modellNev || m.ModellNev,
+                        generacio: m.generacio || m.Generacio,
+                        marka_id: m.markaId || m.MarkaId,
+                        evjarat_tol: m.evjaratTol || m.EvjaratTol,
+                        evjarat_ig: m.evjaratIg || m.EvjaratIg
+                    };
+                });
+
+                // Motors
+                allMotors.forEach(mo => {
+                    newCarData.motors[mo.id || mo.Id] = {
+                        kod: mo.motorKod || mo.MotorKod,
+                        ccm: mo.hengerurtartalom || mo.Hengerurtartalom,
+                        le: mo.teljesitmenyLe || mo.TeljesitmenyLe,
+                        teljesitmeny_kw: mo.teljesitmenyKw || mo.TeljesitmenyKw,
+                        modell_id: mo.modellId || mo.ModellId,
+                        uzemanyag: mo.uzemanyag || mo.Uzemanyag
+                    };
+                });
+
+                setCarData(newCarData);
+                setDictionaryLoaded(true);
+            } catch (err) {
+                console.error("Dictionary betöltési hiba:", err);
+                setError('Nem sikerült betölteni a járműadatokat.');
+            }
+        };
+
+        loadDictionary();
+    }, []);
 
     useEffect(() => {
         const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
@@ -106,12 +111,16 @@ const AlvazszamKereso = () => {
             return;
         }
 
+        if (!dictionaryLoaded) {
+            setError('Az adatok még töltődnek, kérlek várj...');
+            return;
+        }
+
         setLoading(true);
         setError('');
         setResult(null);
 
         try {
-            // Lekérjük az összes járművet és terméket
             const [carsRes, productsRes] = await Promise.all([
                 axios.get(`${API_URL}/cars`),
                 axios.get(`${API_URL}/products`)
@@ -131,15 +140,13 @@ const AlvazszamKereso = () => {
                 return;
             }
 
-            // Modell ID lekérése
             const modellId = foundVehicle.modellId || foundVehicle.ModellId;
             const motor_id = foundVehicle.motorId || foundVehicle.MotorId;
             
-            // Modell adatok keresése a mock adatbázisból
-            const modelData = CAR_DATA_DICTIONARY.models[modellId];
+            const modelData = carData.models[modellId];
             const markaId = modelData?.marka_id;
-            const markaData = CAR_DATA_DICTIONARY.brands[markaId];
-            const motorData = CAR_DATA_DICTIONARY.motors[motor_id];
+            const markaData = carData.brands[markaId];
+            const motorData = carData.motors[motor_id];
 
             if (!modelData || !markaData) {
                 setError('Az adatbázisban nincsenek teljes járműadatok ehhez az alvázszámhoz.');
@@ -147,21 +154,57 @@ const AlvazszamKereso = () => {
                 return;
             }
 
-            // Szűrés: személyautók kategóriájú alkatrészek (1-13)
-            let compatibleProducts = allProducts.filter(p => {
-                const kategId = p.kategoriaId || p.KategoriaId;
-                return kategId >= 1 && kategId <= 13;
-            });
+            const jarmuTipus = (markaData.tipus || '').toLowerCase();
+            let compatibleProducts = allProducts;
 
-            // Szűrés 2: Modell generáció alapján
-            const generacio = modelData.generacio.toUpperCase();
-            compatibleProducts = compatibleProducts.filter(p => {
-                const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
-                const nev = String(p.nev || p.Nev || '').toUpperCase();
-                return cikkszam.includes(generacio) || nev.includes(generacio);
-            });
+            // UNIVERZÁLIS SZŰRÉS JÁRMŰTÍPUS ALAPJÁN
+            if (jarmuTipus === 'szemely' || jarmuTipus === '') {
+                // 1. Személyautók (1-13 kategória és Generáció alapú keresés)
+                compatibleProducts = compatibleProducts.filter(p => {
+                    const kategId = p.kategoriaId || p.KategoriaId;
+                    return kategId >= 1 && kategId <= 13;
+                });
+                const generacio = (modelData.generacio || '').toUpperCase();
+                if (generacio) {
+                    compatibleProducts = compatibleProducts.filter(p => {
+                        const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
+                        const nev = String(p.nev || p.Nev || '').toUpperCase();
+                        return cikkszam.includes(generacio) || nev.includes(generacio);
+                    });
+                }
+            } 
+            else if (jarmuTipus === 'teher') {
+                // 2. Teherautók (14-es kategória és Kötőjeles Modellkód alapú keresés)
+                compatibleProducts = compatibleProducts.filter(p => {
+                    const kategId = p.kategoriaId || p.KategoriaId;
+                    return kategId === 14;
+                });
+                const nevSzavak = modelData.nev ? modelData.nev.toUpperCase().split(/[- ]/) : [];
+                const modelCode = nevSzavak.length > 0 ? nevSzavak[0] : '';
+                if (modelCode) {
+                    compatibleProducts = compatibleProducts.filter(p => {
+                        const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
+                        const parts = cikkszam.split('-');
+                        return parts.length >= 2 && parts[1] === modelCode;
+                    });
+                }
+            } 
+            else if (jarmuTipus === 'motor') {
+                // 3. Motorok (15-ös kategória és Név alapú keresés)
+                compatibleProducts = compatibleProducts.filter(p => {
+                    const kategId = p.kategoriaId || p.KategoriaId;
+                    return kategId === 15;
+                });
+                const modelName = modelData.nev ? modelData.nev.toUpperCase() : '';
+                if (modelName) {
+                    compatibleProducts = compatibleProducts.filter(p => {
+                        const cikkszam = String(p.cikkszam || p.Cikkszam || '').toUpperCase();
+                        const nev = String(p.nev || p.Nev || '').toUpperCase();
+                        return cikkszam.includes(modelName) || nev.includes(modelName);
+                    });
+                }
+            }
 
-            // Enrich result with vehicle details
             setResult({
                 id: foundVehicle.id || foundVehicle.Id,
                 alvazszam: cleanVin,
@@ -176,6 +219,7 @@ const AlvazszamKereso = () => {
                 ccm: motorData?.ccm || 'Nem elérhető',
                 alkatreszek: compatibleProducts
             });
+
         } catch (err) {
             console.error("Keresési hiba:", err);
             setError('Szerver hiba történt a lekérdezés során.');
@@ -184,29 +228,31 @@ const AlvazszamKereso = () => {
         }
     };
 
-    // JAVÍTOTT KOSÁRBA TÉTEL A C# BACKENDHEZ
+    // Javított Kosárba Tétel
     const addToCart = async (productId) => {
-        if (!user || !user.id) return alert('A vásárláshoz be kell jelentkeznie!');
+        const currentUserId = user?.id || user?.Id;
+        
+        if (!currentUserId) return alert('A vásárláshoz be kell jelentkeznie!');
         
         try {
             const payload = {
-                userId: parseInt(user.id),
+                felhasznaloId: parseInt(currentUserId),
                 alkatreszId: parseInt(productId),
                 olajId: null,
                 mennyiseg: 1
             };
 
-            const res = await axios.post(`${API_URL}/cart?action=add`, payload);
+            const res = await axios.post(`${API_URL}/cart`, payload);
             
-            if (res.data.success) {
+            if (res.status === 200 || res.status === 201) {
                 alert('Termék a kosárba került!');
                 window.dispatchEvent(new Event('cartUpdated'));
             } else {
-                alert(res.data.message || res.data.error || 'Hiba történt.');
+                alert(res.data?.message || res.data?.error || 'Hiba történt a kosárba tételkor.');
             }
         } catch (err) {
             console.error("Kosár hiba:", err.response?.data || err);
-            alert('Hiba történt a kosárba tételkor.');
+            alert('Hiba történt a kosárba tételkor. Ellenőrizd a konzolt!');
         }
     };
 
@@ -235,10 +281,10 @@ const AlvazszamKereso = () => {
                         </div>
                         <button 
                             type="submit" 
-                            disabled={loading}
+                            disabled={loading || !dictionaryLoaded}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-12 py-4 rounded-2xl font-bold text-lg shadow-lg shadow-blue-200 transition-all active:scale-95 disabled:opacity-50"
                         >
-                            {loading ? 'KERESÉS...' : 'AZONOSÍTÁS'}
+                            {loading ? 'KERESÉS...' : !dictionaryLoaded ? 'ADATOK TÖLTÉSE...' : 'AZONOSÍTÁS'}
                         </button>
                     </div>
                     {error && (
@@ -258,7 +304,7 @@ const AlvazszamKereso = () => {
                                         {result.markaNev} {result.modellNev}
                                     </h3>
                                     <p className="text-gray-500 mt-2 font-medium">
-                                        Generáció: <span className="text-gray-700 font-bold">{result.generacio}</span>
+                                        Generáció: <span className="text-gray-700 font-bold">{result.generacio || '-'}</span>
                                     </p>
                                 </div>
                                 <div className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-xs font-black uppercase tracking-tighter shadow-sm border border-green-200">
