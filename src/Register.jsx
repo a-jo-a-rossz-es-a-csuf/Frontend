@@ -29,7 +29,17 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
+        // Jelszó komplexitás validálása (legalább 1 kisbetű, 1 nagybetű, 1 szám és min. 6 karakter)
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+
         // Validációk
+        if (!passwordRegex.test(form.password)) {
+            return setStatus({ 
+                loading: false, 
+                message: 'A jelszónak legalább 6 karakternek kell lennie, és tartalmaznia kell legalább egy kisbetűt, egy nagybetűt, valamint egy számot!', 
+                type: 'error' 
+            });
+        }
         if (form.password !== form.confirmPassword) {
             return setStatus({ loading: false, message: 'A jelszavak nem egyeznek!', type: 'error' });
         }

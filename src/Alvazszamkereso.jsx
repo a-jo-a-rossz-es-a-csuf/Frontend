@@ -236,7 +236,7 @@ const AlvazszamKereso = () => {
         
         try {
             const payload = {
-                felhasznaloId: parseInt(currentUserId),
+                userId: parseInt(currentUserId),
                 alkatreszId: parseInt(productId),
                 olajId: null,
                 mennyiseg: 1
