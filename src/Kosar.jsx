@@ -289,7 +289,7 @@ const Kosar = () => {
         };
 
         try {
-            const res = await axios.post(`${API_URL}/orders`, requestData);
+            const res = await axios.post(`${API_URL}/orders`, orderData);
 
             if (res.status === 200 || res.status === 201 || (res.data && res.data.success)) {
 
